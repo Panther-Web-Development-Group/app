@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" class="pw-svg-icon pw-search-icon">
+	<g>
+		<circle r="25" cx="29" cy="29"></circle>
+		<line x1="48" y1="48" x2="90" y2="90"></line>
+		<path d="M25,25 a10,10 -45 0 1 10,10" stroke-linecap="round"></path>
+	</g>
+</svg>
