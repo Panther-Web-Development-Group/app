@@ -28,10 +28,4 @@ const dispatchRevealEffect = e => {
 };
 
 window.addEventListener( "pointermove", dispatchRevealEffect );
-
-controls.forEach( control => { 
-    const button = control.querySelector( ".pw-control-button" );
-
-} );
-
 document.addEventListener( "click", detectOutsideHeader );
