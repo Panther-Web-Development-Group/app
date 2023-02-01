@@ -8,6 +8,126 @@
     <meta name="description" content="Welcome to the Panther Web Development Group, a collaborative space for developing student-run web applications." />
     <link rel="stylesheet" href="index.css" type="text/css" media="all" />
     <link rel="icon" href="assets/logo-icon.png" type="image/png" />
+    <script src="index.js" type="application/javascript" defer></script>
 </head>
-<body></body>
+<body>
+    <div class="pw-container" id="pw-container">
+        <header class="pw-header" id="pw-header">
+            <section class="pw-header-top" id="pw-header-top">
+                <h1 class="pw-logo" id="pw-logo"></h1>
+                <nav class="pw-controls" id="pw-controls">
+                    <form action="" class="pw-search pw-control" id="pw-search">
+						<div class="pw-search-button-container" id="pw-search-button-container">
+							<button class="pw-search-trigger pw-control-button" id="pw-search-trigger">
+								<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" class="pw-svg-icon pw-search-icon">
+									<g>
+										<circle r="25" cx="29" cy="29"></circle>
+										<line x1="48" y1="48" x2="90" y2="90"></line>
+										<path d="M25,25 a10,10 -45 0 1 10,10" stroke-linecap="round"></path>
+									</g>
+								</svg>
+							</button>
+						</div>
+					</form>
+					<nav class="pw-mobile-navigation pw-control" id="pw-mobile-navigation">
+						<div class="pw-mobile-nav-button" id="pw-mobile-nav-button">
+							<button class="pw-mobile-nav-trigger pw-control-button" id="pw-mobile-nav-trigger">
+								<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" class="pw-svg-icon pw-nav-icon">
+									<rect x="0" y="25" height="10" width="80" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"></rect>
+									<rect x="20" y="45" height="10" width="60" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"></rect>
+								</svg>
+							</button>
+						</div>
+					</nav>
+                </nav>
+            </section>
+            <section class="pw-header-bottom" id="pw-header-bottom">
+                <nav class="pw-navigation" id="pw-navigation">
+                    <ul class="pw-nav" id="pw-nav">
+                        <li class="pw-nav-item">
+                            <a href="/" class="pw-nav-link">Home</a>
+                        </li>
+                        <li class="pw-nav-item">
+                            <a href="/" class="pw-nav-link">News</a>
+                        </li>
+                        <li class="pw-nav-item">
+                            <a href="/" class="pw-nav-link">Events</a>
+                        </li>
+                        <li class="pw-nav-item">
+                            <a href="/" class="pw-nav-link">Projects</a>
+                        </li>
+                        <li class="pw-nav-item">
+                            <a href="/" class="pw-nav-link">Contact Us</a>
+                            <div class="pw-subnav">
+                                <ul class="pw-subnav-list">
+                                    <li class="pw-subnav-item">
+                                        <a href="/" class="pw-subnav-link">Panther Involvement Network</a>
+                                    </li>
+                                    <li class="pw-subnav-item">
+                                        <a href="/" class="pw-subnav-link">Discord</a>
+                                    </li>
+                                    <li class="pw-subnav-item">
+                                        <a href="/" class="pw-subnav-link">E-mail</a>
+                                    </li>
+                                    <li class="pw-subnav-item">
+                                        <a href="/" class="pw-subnav-link">Social Media</a>
+                                        <div class="pw-subnav-inner">
+                                            <ul class="pw-subnav-inner-list">
+                                                <li class="pw-subnav-inner-item">
+                                                    <a href="/" class="pw-subnav-inner-link">Instagram</a>
+                                                </li>
+                                                <li class="pw-subnav-inner-item">
+                                                    <a href="/" class="pw-subnav-inner-link">Twitter</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                        <li class="pw-nav-item">
+                            <a href="/" class="pw-nav-link">About</a>
+                            <div class="pw-subnav">
+                                <ul class="pw-subnav-list">
+                                    <li class="pw-subnav-item">
+                                        <a href="/" class="pw-subnav-link">Constitution</a>
+                                    </li>
+                                    <li class="pw-subnav-item">
+                                        <a href="/" class="pw-subnav-link">Apply for Membership</a>
+                                    </li>
+                                    <li class="pw-subnav-item">
+                                        <a href="/" class="pw-subnav-link">About PantherWeb</a>
+                                    </li>
+                                    <li class="pw-subnav-item">
+                                        <a href="/" class="pw-subnav-link">Executive Committee</a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                    </ul>
+                </nav>
+            </section>
+        </header>
+        <main id="pw-main" class="pw-main">
+			<header class="pw-main-header" id="pw-main-header">
+				<section class="pw-main-header__section pw-titles">
+					<h1 class="pw-title" id="pw-title">Welcome to PantherWeb</h1>
+					<h2 class="pw-subtitle" id="pw-subtitle">The best place to collaborate on web development projects.</h2>
+				</section>
+				<section class="pw-main-header__section pw-main-hero">
+					
+				</section>
+			</header>
+			<section class="pw-section pw-left">
+				Insert left side content here!
+			</section>
+			<section class="pw-section pw-right">
+				Insert right side content here!
+			</section>
+		</main>
+		<footer id="pw-footer" class="pw-footer">
+			Place footer here!
+		</footer>
+    </div>
+</body>
 </html>
