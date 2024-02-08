@@ -1,99 +1,201 @@
-<!doctype html>
-<html class="pw" id="pw">
+<!DOCTYPE html>
+<html>
 <head>
-	<title>Panther Web Development Group</title>
-	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<meta name="keywords" content="PantherWeb, Panther Web Development Group, pantherweb" />
-	<meta name="description" content="The Panther Web Development Group is a student organization that provides Georgia State University students with opportunities to grow in the web development world." />
-	<link rel="stylesheet" type="text/css" href="assets/fontawesome/css/all.css" />
-	<link rel="stylesheet" type="text/css" href="index.css" />
-	<script type="text/javascript" src="index.js"></script>
+    <title>Panther Web Development Group</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="The Panther Web Development Group is a student organization created for Georgia State University students to explore the space of web development." />
+    <meta name="keywords" content="PantherWeb, Panther Web Development Group, Panther Web Development Group at Georgia State University, PW" />
+    <meta name="robots" content="max-image-preview:large" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Exo|League+Spartan" />
+    <link rel="stylesheet" href="index.css" type="text/css" media="all" />
+    <script src="assets/fontawesome/js/all.js" type="text/javascript" defer></script>
+    <script src="index.js" type="text/javascript" defer></script>
 </head>
-<body class="pw-body" id="pw-body">
-	<div class="pw-container" id="pw-container">
-		<header class="pw-header" id="pw-header">
-			<h1 class="pw-title" id="pw-title">
-				<a href="#" class="pw-logo" id="pw-logo">
-					<img src="assets/PantherWeb-Name-2.png" alt="Panther Web Development Group" class="pw-logo__image" id="pw-logo__image" />
-				</a>
-			</h1>
-			<div class="pw-navigation" id="pw-navigation">
-				<nav class="pw-buttons" id="pw-buttons">
-					<ul class="pw-buttons__inner" id="pw-buttons__inner">
-						<li class="pw-buttons__item">
-							<a href="https://pin.gsu.edu/organization/pantherweb" class="pw-button">Join PantherWeb</a>
-						</li>
-					</ul>
-				</nav>
-				<nav class="pw-nav" id="pw-nav">
-					<div class="pw-trigger" id="pw-trigger">
-						<label for="pw-trigger__checkbox" class="pw-trigger__button" id="pw-trigger__button">
-							<i class="fa fa-bars pw-open-icon"></i>
-							<i class="fa fa-times pw-close-icon"></i>
-						</label>
-						<input type="checkbox" class="pw-trigger__checkbox" id="pw-trigger__checkbox" />
-					</div>
-					<div class="pw-nav__inner" id="pw-nav__inner">
-						<form class="pw-search" id="pw-search">
-							<input type="search" name="pw-search" id="pw-search__input" class="pw-search__input" />
-							<button type="submit" class="pw-search__submit" id="pw-search__submit">
-								<i class="fa fa-search"></i>
-							</button>
-						</form>
-						<ul class="pw-nav__list" id="pw-nav__list">
-							<li class="pw-nav__item">
-								<a href="#" class="pw-nav__link" id="pw-nav__link">Home</a>
-							</li>
-							<li class="pw-nav__item">
-								<a href="#" class="pw-nav__link" id="pw-nav__link">News</a>
-							</li>
-							<li class="pw-nav__item">
-								<a href="#" class="pw-nav__link" id="pw-nav__link">Events</a>
-							</li>
-							<li class="pw-nav__item">
-								<a href="#" class="pw-nav__link" id="pw-nav__link">Projects</a>
-							</li>
-							<li class="pw-nav__item">
-								<a href="#" class="pw-nav__link" id="pw-nav__link">About</a>
-							</li>
-						</ul>
-					</div>
-				</nav>
-			</div>
-		</header>
-		<main class="pw-content" id="pw-content">
-			<header class="pw-hero" id="pw-hero">
-				<div class="pw-hero__text" id="pw-hero__text">
-					<h2 class="pw-hero__title" id="pw-hero__title">Panther Web Development Group</h2>
-					<section class="pw-hero__description" id="pw-hero__description">
-						<p>A wonderful place to create websites and get a career in web development.</p>
-					</section>
-				</div>
-				<div class="pw-hero__container" id="pw-hero__container">
-
-				</div>
-			</header>
-			<div class="pw-inner" id="pw-inner">
-				<section class="pw-section">
-					<h3 class="pw-section__title">1</h3>
-				</section>
-				<section class="pw-section">
-					<h3 class="pw-section__title">2</h3>
-				</section>
-				<section class="pw-section">
-					<h3 class="pw-section__title">3</h3>
-				</section>
-				<section class="pw-section">
-					<h3 class="pw-section__title">4</h3>
-				</section>
-				<section class="pw-section">
-					<h3 class="pw-section__title">5</h3>
-				</section>
-			</div>
-		</main>
-		<footer class="pw-footer" id="pw-footer"></footer>
-	</div>
-	<div class="pw-portal" id="pw-portal"></div>
+<body>
+    <header class="header" id="header">
+        <div class="header-container" id="header-container">
+            <div class="logo-container" id="logo-container">
+                <h1 class="logo" id="logo">
+                    <a href="#" class="logo-link" id="logo-link">
+                        <img src="assets/logos/PantherWeb-1.png" alt="Panther Web Development Group" class="logo-image" id="logo-image" />
+                        <span class="logo-text" id="logo-text">PantherWeb</span>
+                    </a>
+                </h1>
+            </div>
+            <nav class="navigation" id="navigation">
+                <div class="trigger" id="trigger">
+                    <label for="trigger-checkbox" id="trigger-inner" class="trigger-inner">
+                        <span class="hamburger-icon" id="hamburger-icon"></span>
+                    </label>
+                    <input type="checkbox" class="trigger-input" id="trigger-input" />
+                </div>
+                <div class="navigation-inner" id="navigation-inner">
+                    <form action="" class="search" id="search">
+                        <label for="search-input" class="search-label" id="search-label">Search</label>
+                        <section class="search-box" id="search-box">
+                            <input type="search" name="search" id="search-input" class="search-input" />
+                            <button type="submit" id="search-submit" class="search-submit">
+                                <i class="fa fa-search"></i>
+                            </button>
+                        </section>
+                    </form>
+                    <ul class="nav" id="nav">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link">News</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link">Events</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link">Projects</a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link">About</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </div>
+        <div class="hero-container" id="hero-container"></div>
+    </header>
+    <main class="content-wrapper" id="content-wrapper">
+        <div class="section-container">
+            <section class="section" id="about">
+                <h2 class="section-heading">What is PantherWeb?</h2>
+                <div class="section-content">
+                    <p>The Panther Web Development Group is a registered student
+                    organization that allows all Georgia State University students
+                    with a vested interest in web development, web development,
+                    and coding to learn how to create websites and applications,
+                    apply their web development skills, and decide whether to
+                    publish the finished product.</p>
+                </div>
+            </section>
+            <section class="section" id="mission-statement">
+                <h2 class="section-heading">Mission Statement</h2>
+                <div class="section-content">
+                    <p>PantherWeb strives to spread awareness of web development at Georgia
+                        State University and create a space for students to learn about web
+                        development and apply those skills by building (or improving on) unique
+                        websites.</p>
+                    <p>Students can collaborate with their peers to discuss their passions and
+                        ideas, which assists students with developing better websites and
+                        applications. We find that websites created by students in PantherWeb
+                        can serve as wonderful additions to their portfolios.</p>
+                </div>
+            </section>
+            <section class="section" id="activities">
+                <h2 class="section-heading">What does the Panther Web Development Group do?</h2>
+                <div class="section-content">
+                    <ul>
+                        <li>Educate Georgia State University students about creating a website, the components of a website, and using HTML, CSS, and JavaScript.</li>
+                        <li>Create collaborative small-scale and large-scale web development projects and encourage our members to join.</li>
+                        <li>Develop web development skills required to solve real-world problems in the field.</li>
+                        <li>Host code demonstrations in most general body meetings and events.</li>
+                        <li>Support students in building their networks and expand their portfolios.</li>
+                    </ul>
+                </div>
+            </section>
+            <section class="section" id="affiliates">
+                <h2 class="section-heading">Affiliates</h2>
+                <div class="section-content">
+                    <ul class="affiliate-list">
+                        <li class="affiliate-item">
+                            <a href="#" class="affiliate-link">
+                                <img src="assets/logos/acm-logo.jpg" alt="ACM" class="affiliate-logo" />
+                                <span class="affiliate-name">Association for Computing Machinery (ACM)</span>
+                            </a>
+                        </li>
+                        <li class="affiliate-item">
+                            <a href="#" class="affiliate-link">
+                                <img src="assets/logos/gwc-logo.jpg" alt="Girls Who Code" class="affiliate-logo" />
+                                <span class="affiliate-name">Girls Who Code @ GSU</span>
+                            </a>
+                        </li>
+                        <li class="affiliate-item">
+                            <a href="#" class="affiliate-link">
+                                <img src="assets/logos/compsciclub-logo.jpg" alt="CompSci Club" class="affiliate-logo" />
+                                <span class="affiliate-name">Computer Science Club @ GSU</span>
+                            </a>
+                        </li>
+                        <li class="affiliate-item">
+                            <a href="#" class="affiliate-link">
+                                <img src="assets/logos/girlsplusplus-logo.jpg" alt="Girls++" class="affiliate-logo" />
+                                <span class="affiliate-name">Girls++ at GSU (ACM-W)</span>
+                            </a>
+                        </li>
+                        <li class="affiliate-item">
+                            <a href="#" class="affiliate-link">
+                                <img src="assets/logos/roboticsclub-logo.jpg" alt="Robotics Club" class="affiliate-logo" />
+                                <span class="affiliate-name">Robotics Club at GSU</span>
+                            </a>
+                        </li><!-- 
+                        <li class="affiliate-item">
+                            <a href="#" class="affiliate-link">
+                                <img src="" alt="" class="affiliate-logo" />
+                                <span class="affiliate-name">Ethical Hacking Club at GSU</span>
+                            </a>
+                        </li>
+                        <li class="affiliate-item">
+                            <a href="#" class="affiliate-link">
+                                <img src="" alt="" class="affiliate-logo" />
+                                <span class="affiliate-name">WRAS 88.5FM</span>
+                            </a>
+                        </li> -->
+                    </ul>
+                </div>
+            </section>
+        </div>
+    </main>
+    <footer class="footer" id="footer">
+        <h1 class="footer-logo" id="footer-logo">
+            <a href="#" class="footer-logo-link" id="footer-logo-link">
+                <img src="assets/logos/PantherWeb-Name-2.png" alt="Panther Web Development Group" class="footer-logo-image" id="footer-logo-image" />
+            </a>
+        </h1>
+        <div class="footer-links" id="footer-links">
+            <nav class="footer-section" id="about">
+                <h2 class="footer-section-title">About</h2>
+                <ul class="footer-list">
+                    <li class="footer-item">
+                        <a href="#" class="footer-link">About PantherWeb</a>
+                    </li>
+                    <li class="footer-item">
+                        <a href="#" class="footer-link">Constitution</a>
+                    </li>
+                    <li class="footer-item">
+                        <a href="https://pin.gsu.edu/organization/pantherweb" class="footer-link">Panther Involvement Network</a>
+                    </li>
+                </ul>
+            </nav>
+            <nav class="footer-section socials" id="socials">
+                <h2 class="footer-section-title">Connect</h2>
+                <ul class="socials-list">
+                    <li class="socials-item">
+                        <a href="#" class="socials-link">
+                            <i class="fa-brands fa-instagram"></i>
+                        </a>
+                    </li>
+                    <li class="socials-item">
+                        <a href="#" class="socials-link">
+                            <i class="fa-brands fa-twitter"></i>
+                        </a>
+                    </li>
+                    <li class="socials-item">
+                        <a href="#" class="socials-link">
+                            <i class="fa-brands fa-linkedin"></i>
+                        </a>
+                    </li>
+                    <li class="socials-item">
+                        <a href="#" class="socials-link">
+                            <i class="fa-brands fa-discord"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        <address class="footer-info" id="footer-info"></address>
+    </footer>
 </body>
 </html>
