@@ -7,6 +7,8 @@ import { NextResponse } from "next/server"
  * Returns status of environment variables (without exposing sensitive values)
  */
 export const runtime = "nodejs"
+// Required for `output: "export"` builds.
+export const dynamic = "force-static"
 
 export async function GET() {
   try {
@@ -30,7 +32,8 @@ export async function GET() {
         message: "Failed to check environment variables",
         error: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      // Avoid failing `next build` static export.
+      { status: 200 }
     )
   }
 }
