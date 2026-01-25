@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+:root {
+  /* PantherWeb theme (light) */
+  --pw-bg: #053BA6;
+  --pw-fg: #0a0a1a;
+  --pw-bg-secondary: #bcdfff;
+  --pw-fg-secondary: #1a203f;
+  --pw-bg-accent: #7DD3FF;
+  --pw-fg-accent: #0a0a1a;
+
+  /* Neutrals */
+  --pw-border: rgba(10, 10, 26, 0.18);
+
+  /* Alerts */
+  --pw-danger: #DF0000;
+  --pw-warning: #FFBC00;
+  --pw-info: #00DFFF;
+  --pw-success: #00EF3F;
+
+  /* Back-compat */
+  --background: var(--pw-bg);
+  --foreground: var(--pw-fg);
+}
+
+@theme inline {
+  --color-background: var(--pw-bg);
+  --color-foreground: var(--pw-fg);
+  --color-secondary: var(--pw-bg-secondary);
+  --color-secondary-foreground: var(--pw-fg-secondary);
+  --color-accent: var(--pw-bg-accent);
+  --color-accent-foreground: var(--pw-fg-accent);
+
+  --color-danger: var(--pw-danger);
+  --color-warning: var(--pw-warning);
+  --color-info: var(--pw-info);
+  --color-success: var(--pw-success);
+
+  --font-sans: var(--exo-font);
+  --font-mono: var(--exo-font);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* PantherWeb theme (dark) */
+    --pw-bg: #0D0926;
+    --pw-fg: #eeeeff;
+    --pw-bg-secondary: #0E0A73;
+    --pw-fg-secondary: #cddeff;
+    --pw-bg-accent: #1F4F6C;
+    --pw-fg-accent: #eeeeff;
+
+    --pw-border: rgba(238, 238, 255, 0.14);
+
+    --background: var(--pw-bg);
+    --foreground: var(--pw-fg);
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
