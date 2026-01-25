@@ -10,13 +10,6 @@ interface PageProps {
   params: Promise<{ id: string }>
 }
 
-// Static export support (`output: "export"`):
-// Admin edit routes are not meant to be pre-rendered into static HTML.
-// Returning an empty list satisfies Next's requirement for dynamic segments.
-export async function generateStaticParams(): Promise<Array<{ id: string }>> {
-  return []
-}
-
 type PageRow = Tables<"pages">
 type PageInsert = TablesInsert<"pages">
 type PageUpdate = TablesUpdate<"pages">

@@ -54,12 +54,6 @@ interface PageProps {
   params: Promise<{ page: string }>
 }
 
-// Static export support (`output: "export"`):
-// CMS-driven slugs aren't known at build time here; this keeps export builds happy.
-export async function generateStaticParams(): Promise<Array<{ page: string }>> {
-  return []
-}
-
 /**
  * Generate metadata for the page
  * This runs in a Server Component context and can use server-only APIs
