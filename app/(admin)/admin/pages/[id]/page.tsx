@@ -299,7 +299,9 @@ async function updatePageSection(id: string, data: {
   return { data: updated }
 }
 
-async function deletePageSection(id: string) {
+async function deletePageSection(
+  id: string,
+): Promise<{ success?: true; error?: string }> {
   "use server"
 
   const supabase = await createClient()
@@ -318,7 +320,7 @@ async function deletePageSection(id: string) {
     if (page?.slug) revalidatePageSlug(page.slug)
   }
 
-  return { success: true }
+  return { success: true as const }
 }
 
 export default async function EditPagePage({ params }: PageProps) {

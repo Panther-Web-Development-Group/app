@@ -2,12 +2,10 @@
 
 import { useMemo } from "react"
 import { $generateHtmlFromNodes } from "@lexical/html"
-import { $getRoot } from "lexical"
-import { createEditor, LexicalEditor } from "lexical"
+import { createEditor } from "lexical"
 import { HeadingNode, QuoteNode } from "@lexical/rich-text"
 import { ListItemNode, ListNode } from "@lexical/list"
 import { AutoLinkNode, LinkNode } from "@lexical/link"
-import { $generateNodesFromDOM } from "@lexical/html"
 
 interface LexicalRendererProps {
   content: any
@@ -70,14 +68,16 @@ export function LexicalRenderer({ content, className }: LexicalRendererProps) {
         onError: () => {
           // Silent error handling
         },
-        editorState: JSON.stringify(lexicalState),
       })
 
       editor.setEditable(false)
 
       // Generate HTML from the editor state
       let htmlOutput = ""
-      editor.getEditorState().read(() => {
+      const parsedState = editor.parseEditorState(JSON.stringify(lexicalState))
+      editor.setEditorState(parsedState)
+
+      parsedState.read(() => {
         htmlOutput = $generateHtmlFromNodes(editor, null)
       })
 

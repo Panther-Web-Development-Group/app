@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/app/supabase/services/server"
 import { Button } from "@/app/components/Button"
+import type { Json } from "@/lib/supabase/types"
 
 type SiteBrandingRow = {
   id: string
@@ -10,7 +11,7 @@ type SiteBrandingRow = {
   footer_logo: string | null
   footer_logo_alt: string | null
   is_active: boolean
-  metadata: unknown
+  metadata: Json
   created_at: string
   updated_at: string
 }
@@ -36,7 +37,7 @@ type SeoMetadataRow = {
   twitter_creator: string | null
   canonical_url: string | null
   robots: string | null
-  structured_data: unknown | null
+  structured_data: Json | null
   created_at: string
   updated_at: string
 }
@@ -47,7 +48,7 @@ type MinimalPostRow = { id: string; title: string; slug: string; is_published: b
 type SiteSettingRow = {
   id: string
   key: string
-  value: unknown
+  value: Json
   value_type: "string" | "number" | "boolean" | "object" | "array"
   description: string | null
   category: string | null
@@ -56,7 +57,7 @@ type SiteSettingRow = {
   updated_at: string
 }
 
-function parseTypedValue(valueType: SiteSettingRow["value_type"], raw: string): unknown {
+function parseTypedValue(valueType: SiteSettingRow["value_type"], raw: string): Json {
   const trimmed = raw.trim()
 
   if (valueType === "string") return trimmed
@@ -64,7 +65,7 @@ function parseTypedValue(valueType: SiteSettingRow["value_type"], raw: string): 
   if (valueType === "boolean") return trimmed === "true" || trimmed === "1" || trimmed.toLowerCase() === "yes"
   if (valueType === "object" || valueType === "array") {
     if (!trimmed) return valueType === "array" ? [] : {}
-    return JSON.parse(trimmed)
+    return JSON.parse(trimmed) as Json
   }
 
   return trimmed
@@ -102,10 +103,10 @@ export default async function AdminSiteSettingsPage() {
     const isActive = formData.get("is_active") === "on"
     const metadataRaw = String(formData.get("metadata") ?? "").trim()
 
-    let metadata: unknown = {}
+    let metadata: Json = {}
     if (metadataRaw) {
       try {
-        metadata = JSON.parse(metadataRaw)
+        metadata = JSON.parse(metadataRaw) as Json
       } catch (e) {
         console.error("Invalid JSON for branding metadata:", e)
         return
@@ -168,13 +169,13 @@ export default async function AdminSiteSettingsPage() {
       twitter_creator: String(formData.get("twitter_creator") ?? "").trim() || null,
       canonical_url: String(formData.get("canonical_url") ?? "").trim() || null,
       robots: String(formData.get("robots") ?? "").trim() || null,
-      structured_data: null as unknown,
+      structured_data: null as Json | null,
     }
 
     const structuredRaw = String(formData.get("structured_data") ?? "").trim()
     if (structuredRaw) {
       try {
-        payload.structured_data = JSON.parse(structuredRaw)
+        payload.structured_data = JSON.parse(structuredRaw) as Json
       } catch (e) {
         console.error("Invalid JSON-LD for structured_data:", e)
         return
@@ -239,7 +240,7 @@ export default async function AdminSiteSettingsPage() {
 
     if (!key) return
 
-    let value: unknown
+    let value: Json
     try {
       value = parseTypedValue(valueType, valueRaw)
     } catch (e) {

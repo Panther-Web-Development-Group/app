@@ -60,11 +60,20 @@ export default function EditPostPage() {
         if (result.data.content) {
           if (typeof result.data.content === "string") {
             setEditorState(result.data.content)
-          } else if (result.data.content.root) {
+          } else if (
+            typeof result.data.content === "object" &&
+            result.data.content !== null &&
+            "root" in result.data.content
+          ) {
             // Lexical JSON format
             setEditorState(JSON.stringify(result.data.content))
-          } else if (result.data.content.html) {
-            setEditorState(result.data.content.html)
+          } else if (
+            typeof result.data.content === "object" &&
+            result.data.content !== null &&
+            "html" in result.data.content &&
+            typeof (result.data.content as any).html === "string"
+          ) {
+            setEditorState((result.data.content as any).html)
           } else {
             setEditorState(null)
           }
