@@ -18,7 +18,8 @@ import {
 } from "@lexical/list"
 import { $isHeadingNode, $createHeadingNode, $createQuoteNode } from "@lexical/rich-text"
 import { $setBlocksType } from "@lexical/selection"
-import { useCallback, useEffect, useState } from "react"
+import { $createParagraphNode } from "lexical"
+import { useCallback, useEffect, useState, useMemo } from "react"
 import {
   Bold,
   Italic,
@@ -28,12 +29,10 @@ import {
   Link,
   List,
   ListOrdered,
-  Heading1,
-  Heading2,
-  Heading3,
   Quote,
 } from "lucide-react"
 import { Button } from "@/app/components/Button"
+import { Select, SelectTrigger, SelectContent, SelectOption } from "@/app/components/Form/Select"
 
 const ToolbarButton = ({
   onClick,
@@ -69,6 +68,13 @@ export function Toolbar() {
   const [isCode, setIsCode] = useState(false)
   const [isLink, setIsLink] = useState(false)
   const [blockType, setBlockType] = useState<string>("paragraph")
+
+  const selectValue = useMemo(() => {
+    if (blockType === "paragraph" || blockType === "h1" || blockType === "h2" || blockType === "h3" || blockType === "h4") {
+      return blockType
+    }
+    return "paragraph"
+  }, [blockType])
 
   const updateToolbar = useCallback(() => {
     const selection = $getSelection()
@@ -111,11 +117,15 @@ export function Toolbar() {
     )
   }, [editor, updateToolbar])
 
-  const formatHeading = (headingSize: "h1" | "h2" | "h3") => {
+  const formatBlock = (blockType: "paragraph" | "h1" | "h2" | "h3" | "h4") => {
     editor.update(() => {
       const selection = $getSelection()
       if ($isRangeSelection(selection)) {
-        $setBlocksType(selection, () => $createHeadingNode(headingSize))
+        if (blockType === "paragraph") {
+          $setBlocksType(selection, () => $createParagraphNode())
+        } else {
+          $setBlocksType(selection, () => $createHeadingNode(blockType))
+        }
       }
     })
   }
@@ -171,7 +181,28 @@ export function Toolbar() {
   }
 
   return (
-    <div className="toolbar flex items-center gap-1 p-2 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">
+    <div className="toolbar flex max-w-full items-center gap-1 overflow-x-auto p-2 border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="flex items-center gap-1 border-r border-zinc-300 dark:border-zinc-700 pr-2 mr-2">
+        <Select
+          value={selectValue}
+          onValueChange={(value) => {
+            if (typeof value === "string" && (value === "paragraph" || value === "h1" || value === "h2" || value === "h3" || value === "h4")) {
+              formatBlock(value as "paragraph" | "h1" | "h2" | "h3" | "h4")
+            }
+          }}
+          className="min-w-[140px]"
+        >
+          <SelectTrigger className="h-8 rounded border border-zinc-300 bg-white px-2 text-sm text-zinc-900 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50 dark:hover:bg-zinc-700" />
+          <SelectContent className="z-[9999]">
+            <SelectOption value="paragraph">Normal Text</SelectOption>
+            <SelectOption value="h1">Heading 1</SelectOption>
+            <SelectOption value="h2">Heading 2</SelectOption>
+            <SelectOption value="h3">Heading 3</SelectOption>
+            <SelectOption value="h4">Heading 4</SelectOption>
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="flex items-center gap-1 border-r border-zinc-300 dark:border-zinc-700 pr-2 mr-2">
         <ToolbarButton
           onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold")}
@@ -207,30 +238,6 @@ export function Toolbar() {
           title="Code"
         >
           <Code className="h-4 w-4" />
-        </ToolbarButton>
-      </div>
-
-      <div className="flex items-center gap-1 border-r border-zinc-300 dark:border-zinc-700 pr-2 mr-2">
-        <ToolbarButton
-          onClick={() => formatHeading("h1")}
-          isActive={blockType === "h1"}
-          title="Heading 1"
-        >
-          <Heading1 className="h-4 w-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => formatHeading("h2")}
-          isActive={blockType === "h2"}
-          title="Heading 2"
-        >
-          <Heading2 className="h-4 w-4" />
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => formatHeading("h3")}
-          isActive={blockType === "h3"}
-          title="Heading 3"
-        >
-          <Heading3 className="h-4 w-4" />
         </ToolbarButton>
       </div>
 

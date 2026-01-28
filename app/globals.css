@@ -2,15 +2,23 @@
 
 :root {
   /* PantherWeb theme (light) */
-  --pw-bg: #053BA6;
-  --pw-fg: #0a0a1a;
-  --pw-bg-secondary: #bcdfff;
-  --pw-fg-secondary: #1a203f;
+  /* Base: alice blue */
+  --pw-bg: #F0F8FF;
+  /* Primary foreground */
+  --pw-fg: #1f1f1f;
+
+  /* Secondary */
+  --pw-bg-secondary: #E6F2FF;
+  --pw-fg-secondary: #0a0f1b;
+
+  /* Accent (tech-inspired) */
   --pw-bg-accent: #7DD3FF;
-  --pw-fg-accent: #0a0a1a;
+  --pw-fg-accent: #1f1f1f;
 
   /* Neutrals */
-  --pw-border: rgba(10, 10, 26, 0.18);
+  --pw-border: rgba(31, 31, 31, 0.18);
+  --pw-shadow: rgba(10, 15, 27, 0.18);
+  --pw-ring: rgba(0, 223, 255, 0.35);
 
   /* Alerts */
   --pw-danger: #DF0000;
@@ -43,14 +51,22 @@
 @media (prefers-color-scheme: dark) {
   :root {
     /* PantherWeb theme (dark) */
-    --pw-bg: #0D0926;
-    --pw-fg: #eeeeff;
-    --pw-bg-secondary: #0E0A73;
-    --pw-fg-secondary: #cddeff;
-    --pw-bg-accent: #1F4F6C;
-    --pw-fg-accent: #eeeeff;
+    /* Base: slate gray */
+    --pw-bg: #0f172a;
+    /* Primary foreground */
+    --pw-fg: #ededff;
 
-    --pw-border: rgba(238, 238, 255, 0.14);
+    /* Secondary */
+    --pw-bg-secondary: #111c33;
+    --pw-fg-secondary: #cfdfff;
+
+    /* Accent (tech-inspired) */
+    --pw-bg-accent: #1F4F6C;
+    --pw-fg-accent: #ededff;
+
+    --pw-border: rgba(237, 237, 255, 0.14);
+    --pw-shadow: rgba(0, 0, 0, 0.35);
+    --pw-ring: rgba(0, 223, 255, 0.35);
 
     --background: var(--pw-bg);
     --foreground: var(--pw-fg);
@@ -58,7 +74,10 @@
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(1200px circle at 20% -10%, color-mix(in oklab, var(--pw-info) 18%, transparent) 0%, transparent 55%),
+    radial-gradient(900px circle at 110% 10%, color-mix(in oklab, var(--pw-bg-accent) 22%, transparent) 0%, transparent 55%),
+    var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }

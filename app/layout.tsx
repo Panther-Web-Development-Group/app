@@ -20,8 +20,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${exo.variable} antialiased scroll-smooth snap-y snap-proximity`}>
-      <body className="bg-background text-foreground">
+    <html
+      lang="en"
+      className={`${exo.variable} antialiased scroll-smooth snap-y snap-proximity overflow-x-hidden`}
+    >
+      <body className="bg-background text-foreground overflow-x-hidden">
         {children}
       </body>
     </html>

@@ -15,7 +15,7 @@ export function DashboardSearchbar() {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder="Search…"
-          className="h-10 w-64 rounded-lg border border-(--pw-border) bg-background/10 pl-10 pr-3 text-sm text-foreground placeholder:text-foreground/60 outline-none focus:ring-2 focus:ring-accent/30"
+          className="h-10 w-64 max-w-[40vw] rounded-lg border border-(--pw-border) bg-background/10 pl-10 pr-3 text-sm text-foreground placeholder:text-foreground/60 outline-none focus:ring-2 focus:ring-accent/30"
         />
       </div>
     </form>

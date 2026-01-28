@@ -1,6 +1,11 @@
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/app/supabase/services/server"
 import { Button } from "@/app/components/Button"
+import { InputGroup } from "@/app/components/Form/InputGroup"
+import { TextAreaGroup } from "@/app/components/Form/TextAreaGroup"
+import { Checkbox } from "@/app/components/Form/Checkbox"
+import { ColorPicker } from "@/app/components/Form/ColorPicker"
+import { NumberInput } from "@/app/components/Form/Number"
 
 type CategoryRow = {
   id: string
@@ -129,60 +134,51 @@ export default async function AdminCategoriesPage() {
       <div className="rounded-lg border border-(--pw-border) bg-secondary/20 p-6">
         <h3 className="text-lg font-semibold text-foreground">Create Category</h3>
         <form action={createCategory} className="mt-4 grid gap-4 sm:grid-cols-2">
+          <InputGroup className="sm:col-span-1" name="name" required label="Name" />
+          <InputGroup
+            className="sm:col-span-1"
+            name="slug"
+            label="Slug (optional)"
+            placeholder="auto-from-name"
+            description="If blank, we’ll generate one from the name."
+          />
+          <TextAreaGroup
+            className="sm:col-span-2"
+            name="description"
+            label="Description (optional)"
+            rows={3}
+          />
           <div className="sm:col-span-1">
-            <label className="text-sm font-semibold text-foreground/80">Name</label>
-            <input
-              name="name"
-              required
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
+            <div className="space-y-1.5">
+              <label className="block text-sm font-semibold text-foreground/80">Color (optional)</label>
+              <ColorPicker
+                name="color"
+                defaultValue="#1e40af"
+                enablePalettes={false}
+              />
+            </div>
           </div>
+          <InputGroup
+            name="icon"
+            label="Icon (optional)"
+            placeholder="lucide icon name"
+            descriptionType="tooltip"
+            description="Stores an icon key; rendering depends on your icon map."
+          />
           <div className="sm:col-span-1">
-            <label className="text-sm font-semibold text-foreground/80">Slug (optional)</label>
-            <input
-              name="slug"
-              placeholder="auto-from-name"
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="text-sm font-semibold text-foreground/80">Description (optional)</label>
-            <textarea
-              name="description"
-              rows={3}
-              className="mt-1 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-semibold text-foreground/80">Color (optional)</label>
-            <input
-              name="color"
-              placeholder="#1e40af"
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-semibold text-foreground/80">Icon (optional)</label>
-            <input
-              name="icon"
-              placeholder="lucide icon name"
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-semibold text-foreground/80">Order</label>
-            <input
-              name="order_index"
-              type="number"
-              defaultValue={0}
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
+            <div className="space-y-1.5">
+              <label className="block text-sm font-semibold text-foreground/80">Order</label>
+              <NumberInput
+                name="order_index"
+                defaultValue={0}
+                min={0}
+                step={1}
+              />
+              <div className="text-xs leading-5 text-foreground/70">Lower numbers appear first.</div>
+            </div>
           </div>
           <div className="flex items-end gap-3">
-            <label className="inline-flex items-center gap-2 text-sm font-semibold text-foreground/80">
-              <input type="checkbox" name="is_active" defaultChecked className="h-4 w-4" />
-              Active
-            </label>
+            <Checkbox name="is_active" label="Active" defaultChecked />
           </div>
 
           <div className="sm:col-span-2">

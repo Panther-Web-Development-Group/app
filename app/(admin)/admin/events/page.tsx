@@ -1,6 +1,9 @@
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/app/supabase/services/server"
 import { Button } from "@/app/components/Button"
+import { InputGroup } from "@/app/components/Form/InputGroup"
+import { Checkbox } from "@/app/components/Form/Checkbox"
+import { DateTimePicker } from "./DateTimePicker"
 
 type EventRow = {
   id: string
@@ -148,59 +151,35 @@ export default async function AdminEventsPage() {
       <div className="rounded-lg border border-(--pw-border) bg-secondary/20 p-6">
         <h3 className="text-lg font-semibold text-foreground">Create Event</h3>
         <form action={createEvent} className="mt-4 grid gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <label className="text-sm font-semibold text-foreground/80">Title</label>
-            <input
-              name="title"
-              required
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="text-sm font-semibold text-foreground/80">Slug (optional)</label>
-            <input
-              name="slug"
-              placeholder="auto-from-title"
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-semibold text-foreground/80">Start</label>
-            <input
-              name="start_time"
-              type="datetime-local"
-              required
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-semibold text-foreground/80">End (optional)</label>
-            <input
-              name="end_time"
-              type="datetime-local"
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
-          </div>
+          <InputGroup className="sm:col-span-2" name="title" required label="Title" />
+          <InputGroup
+            className="sm:col-span-2"
+            name="slug"
+            label="Slug (optional)"
+            placeholder="auto-from-title"
+            description="If blank, we’ll generate one from the title."
+          />
+          <DateTimePicker
+            name="start_time"
+            required
+            label="Start"
+            className="sm:col-span-1"
+          />
+          <DateTimePicker
+            name="end_time"
+            label="End (optional)"
+            className="sm:col-span-1"
+          />
           <div className="sm:col-span-2 flex flex-wrap items-center gap-4">
-            <label className="inline-flex items-center gap-2 text-sm font-semibold text-foreground/80">
-              <input type="checkbox" name="all_day" className="h-4 w-4" />
-              All-day
-            </label>
-            <label className="inline-flex items-center gap-2 text-sm font-semibold text-foreground/80">
-              <input type="checkbox" name="is_virtual" className="h-4 w-4" />
-              Virtual
-            </label>
-            <label className="inline-flex items-center gap-2 text-sm font-semibold text-foreground/80">
-              <input type="checkbox" name="is_published" className="h-4 w-4" />
-              Publish now
-            </label>
+            <Checkbox name="all_day" label="All-day" />
+            <Checkbox name="is_virtual" label="Virtual" />
+            <Checkbox name="is_published" label="Publish now" />
           </div>
           <div className="sm:col-span-2">
-            <label className="text-sm font-semibold text-foreground/80">Virtual URL (required if virtual)</label>
-            <input
+            <InputGroup
               name="virtual_url"
+              label="Virtual URL (required if virtual)"
               placeholder="https://…"
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
             />
           </div>
 

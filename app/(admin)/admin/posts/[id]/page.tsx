@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useRef } from "react"
 import { useRouter, useParams } from "next/navigation"
-import { Editor, getEditorStateAsJSON } from "@/app/components/Editor"
+import { Editor, getEditorStateAsJSON } from "@/app/components/Form/Editor"
 import { updatePost, getPostById, createPost } from "@/lib/supabase/server/actions/posts"
 import { Save, X, Eye } from "lucide-react"
 import Link from "next/link"
 import { EditorState, LexicalEditor } from "lexical"
 import { Button } from "@/app/components/Button"
+import { Checkbox } from "@/app/components/Form/Checkbox"
 
 export default function EditPostPage() {
   const params = useParams()
@@ -257,10 +258,10 @@ export default function EditPostPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-            Content *
-          </label>
           <Editor
+            label="Content"
+            required
+            labelClassName="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
             initialContent={editorState}
             onChange={handleEditorChange}
             placeholder="Write your post content here..."
@@ -268,15 +269,11 @@ export default function EditPostPage() {
         </div>
 
         <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={isPublished}
-              onChange={(e) => setIsPublished(e.target.checked)}
-              className="h-4 w-4 rounded border-zinc-300 text-zinc-600 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:ring-zinc-600"
-            />
-            <span className="text-sm text-zinc-700 dark:text-zinc-300">Published</span>
-          </label>
+          <Checkbox
+            checked={isPublished}
+            onCheckedChange={setIsPublished}
+            label={<span className="text-sm text-zinc-700 dark:text-zinc-300">Published</span>}
+          />
         </div>
 
         <div className="flex items-center gap-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">

@@ -10,6 +10,7 @@ export const editorConfig = {
       h1: "editor-heading-h1",
       h2: "editor-heading-h2",
       h3: "editor-heading-h3",
+      h4: "editor-heading-h4",
     },
     list: {
       nested: {

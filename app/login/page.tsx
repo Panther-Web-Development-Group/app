@@ -5,6 +5,8 @@ import { createClient } from "@/app/supabase/services/client"
 import Link from "next/link"
 import { LogIn, Mail, Lock, AlertCircle } from "lucide-react"
 import { Button } from "@/app/components/Button"
+import { Checkbox } from "@/app/components/Form/Checkbox"
+import { InputGroup } from "@/app/components/Form/InputGroup"
 
 export const LoginForm = () => {
   const router = useRouter()
@@ -73,71 +75,45 @@ export const LoginForm = () => {
           )}
 
           <div className="space-y-4 rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
-              >
-                Email address
-              </label>
-              <div className="relative mt-1">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                  <Mail className="h-5 w-5 text-zinc-400" />
-                </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full rounded-lg border border-zinc-300 bg-white py-2 pl-10 pr-3 text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder-zinc-500 dark:focus:border-zinc-600 dark:focus:ring-zinc-600 sm:text-sm"
-                  placeholder="you@example.com"
-                />
-              </div>
-            </div>
+            <InputGroup
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              label="Email address"
+              labelClassName="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              icon={<Mail className="h-5 w-5" />}
+              iconClassName="text-zinc-400"
+              placeholder="you@example.com"
+              inputClassName="border-zinc-300 bg-white text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder-zinc-500 dark:focus:border-zinc-600 dark:focus:ring-zinc-600 sm:text-sm"
+            />
 
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
-              >
-                Password
-              </label>
-              <div className="relative mt-1">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                  <Lock className="h-5 w-5 text-zinc-400" />
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full rounded-lg border border-zinc-300 bg-white py-2 pl-10 pr-3 text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder-zinc-500 dark:focus:border-zinc-600 dark:focus:ring-zinc-600 sm:text-sm"
-                  placeholder="••••••••"
-                />
-              </div>
-            </div>
+            <InputGroup
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              label="Password"
+              labelClassName="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              icon={<Lock className="h-5 w-5" />}
+              iconClassName="text-zinc-400"
+              placeholder="••••••••"
+              inputClassName="border-zinc-300 bg-white text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder-zinc-500 dark:focus:border-zinc-600 dark:focus:ring-zinc-600 sm:text-sm"
+            />
           </div>
 
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <input
-                id="remember-me"
+              <Checkbox
                 name="remember-me"
-                type="checkbox"
-                className="h-4 w-4 rounded border-zinc-300 text-zinc-600 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:ring-zinc-600"
+                label={<span className="text-sm text-zinc-700 dark:text-zinc-300">Remember me</span>}
               />
-              <label
-                htmlFor="remember-me"
-                className="ml-2 block text-sm text-zinc-700 dark:text-zinc-300"
-              >
-                Remember me
-              </label>
             </div>
 
             <div className="text-sm">

@@ -7,7 +7,7 @@ export function checkEnvVars() {
   const required = [
     "NEXT_PUBLIC_SUPABASE_URL",
     "NEXT_PUBLIC_SUPABASE_ANON_OR_PUBLISHABLE_KEY",
-    "NEXT_PUBLIC_SUPABASE_ADMIN_KEY",
+    "NEXT_SUPABASE_ADMIN_KEY",
   ] as const
 
   const missing: string[] = []
@@ -37,7 +37,7 @@ if (process.env.NODE_ENV === "development") {
     console.log("Environment variables:", {
       NEXT_PUBLIC_SUPABASE_URL: values.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + "...",
       NEXT_PUBLIC_SUPABASE_ANON_OR_PUBLISHABLE_KEY: values.NEXT_PUBLIC_SUPABASE_ANON_OR_PUBLISHABLE_KEY?.substring(0, 20) + "...",
-      NEXT_PUBLIC_SUPABASE_ADMIN_KEY: values.NEXT_PUBLIC_SUPABASE_ADMIN_KEY ? "***set***" : undefined,
+      NEXT_SUPABASE_ADMIN_KEY: values.NEXT_SUPABASE_ADMIN_KEY ? "***set***" : undefined,
     })
   } else {
     console.error("❌ Missing environment variables:", missing)

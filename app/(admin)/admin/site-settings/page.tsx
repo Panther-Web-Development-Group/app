@@ -1,7 +1,13 @@
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/app/supabase/services/server"
 import { Button } from "@/app/components/Button"
+import { InputGroup } from "@/app/components/Form/InputGroup"
+import { TextAreaGroup } from "@/app/components/Form/TextAreaGroup"
+import { Checkbox } from "@/app/components/Form/Checkbox"
+import { Tags } from "@/app/components/Form/Tags"
 import type { Json } from "@/lib/supabase/types"
+import { SeoTargetPicker } from "./SeoTargetPicker"
+import { Select, SelectContent, SelectOption, SelectTrigger } from "@/app/components/Form/Select"
 
 type SiteBrandingRow = {
   id: string
@@ -149,13 +155,18 @@ export default async function AdminSiteSettingsPage() {
     const targetId = String(formData.get("target_id") ?? "").trim()
     if (!targetId || (targetType !== "page" && targetType !== "post")) return
 
+    const metaKeywordsRaw = formData.getAll("meta_keywords")
+    const metaKeywords = Array.isArray(metaKeywordsRaw) && metaKeywordsRaw.length > 0
+      ? metaKeywordsRaw.map((s) => String(s).trim()).filter(Boolean)
+      : null
+
     const payload = {
       owner_id: user.id,
       post_id: targetType === "post" ? targetId : null,
       page_id: targetType === "page" ? targetId : null,
       meta_title: String(formData.get("meta_title") ?? "").trim() || null,
       meta_description: String(formData.get("meta_description") ?? "").trim() || null,
-      meta_keywords: parseKeywords(String(formData.get("meta_keywords") ?? "")),
+      meta_keywords: metaKeywords,
       og_title: String(formData.get("og_title") ?? "").trim() || null,
       og_description: String(formData.get("og_description") ?? "").trim() || null,
       og_image: String(formData.get("og_image") ?? "").trim() || null,
@@ -333,55 +344,48 @@ export default async function AdminSiteSettingsPage() {
         <p className="mt-1 text-sm text-foreground/70">Header/footer logos and branding metadata.</p>
 
         <form action={upsertBranding} className="mt-4 grid gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <label className="text-sm font-semibold text-foreground/80">Header logo URL</label>
-            <input
-              name="header_logo"
-              defaultValue={branding?.header_logo ?? ""}
-              placeholder="https://… or /storage/path"
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="text-sm font-semibold text-foreground/80">Header logo alt (optional)</label>
-            <input
-              name="header_logo_alt"
-              defaultValue={branding?.header_logo_alt ?? ""}
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="text-sm font-semibold text-foreground/80">Footer logo URL</label>
-            <input
-              name="footer_logo"
-              defaultValue={branding?.footer_logo ?? ""}
-              placeholder="https://… or /storage/path"
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="text-sm font-semibold text-foreground/80">Footer logo alt (optional)</label>
-            <input
-              name="footer_logo_alt"
-              defaultValue={branding?.footer_logo_alt ?? ""}
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="text-sm font-semibold text-foreground/80">Metadata (optional JSON)</label>
-            <textarea
-              name="metadata"
-              rows={3}
-              defaultValue={branding?.metadata ? JSON.stringify(branding.metadata) : ""}
-              placeholder='{"favicon":"/favicon.ico"}'
-              className="mt-1 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
-          </div>
+          <InputGroup
+            className="sm:col-span-2"
+            name="header_logo"
+            defaultValue={branding?.header_logo ?? ""}
+            placeholder="https://… or /storage/path"
+            label="Header logo URL"
+          />
+          <InputGroup
+            className="sm:col-span-2"
+            name="header_logo_alt"
+            defaultValue={branding?.header_logo_alt ?? ""}
+            label="Header logo alt (optional)"
+          />
+          <InputGroup
+            className="sm:col-span-2"
+            name="footer_logo"
+            defaultValue={branding?.footer_logo ?? ""}
+            placeholder="https://… or /storage/path"
+            label="Footer logo URL"
+          />
+          <InputGroup
+            className="sm:col-span-2"
+            name="footer_logo_alt"
+            defaultValue={branding?.footer_logo_alt ?? ""}
+            label="Footer logo alt (optional)"
+          />
+          <TextAreaGroup
+            className="sm:col-span-2"
+            name="metadata"
+            rows={3}
+            defaultValue={branding?.metadata ? JSON.stringify(branding.metadata) : ""}
+            placeholder='{"favicon":"/favicon.ico"}'
+            label="Metadata (optional JSON)"
+            descriptionType="tooltip"
+            description="Optional JSON blob for future site metadata."
+          />
           <div className="sm:col-span-2 flex items-center gap-4">
-            <label className="inline-flex items-center gap-2 text-sm font-semibold text-foreground/80">
-              <input type="checkbox" name="is_active" defaultChecked={branding?.is_active ?? true} className="h-4 w-4" />
-              Active
-            </label>
+            <Checkbox
+              name="is_active"
+              label="Active"
+              defaultChecked={branding?.is_active ?? true}
+            />
           </div>
 
           <div className="sm:col-span-2">
@@ -401,133 +405,75 @@ export default async function AdminSiteSettingsPage() {
         <p className="mt-1 text-sm text-foreground/70">Attach SEO metadata to a page or post.</p>
 
         <form action={upsertSeo} className="mt-4 grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="text-sm font-semibold text-foreground/80">Target type</label>
-            <select
-              name="target_type"
-              defaultValue="page"
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            >
-              <option value="page">Page</option>
-              <option value="post">Post</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-sm font-semibold text-foreground/80">Target</label>
-            <select
-              name="target_id"
-              required
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            >
-              <option value="" disabled>
-                Select…
-              </option>
-              <optgroup label="Pages">
-                {(pages ?? []).map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.title} ({p.slug}){p.is_published ? "" : " [draft]"}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="Posts">
-                {(posts ?? []).map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.title} ({p.slug}){p.is_published ? "" : " [draft]"}
-                  </option>
-                ))}
-              </optgroup>
-            </select>
-            <p className="mt-1 text-xs text-foreground/70">
-              Note: pick the target type to match the item you choose.
-            </p>
-          </div>
+          <SeoTargetPicker pages={pages ?? []} posts={posts ?? []} className="sm:col-span-2" />
 
           <div className="sm:col-span-2">
-            <label className="text-sm font-semibold text-foreground/80">Meta title</label>
-            <input
+            <InputGroup
               name="meta_title"
               placeholder="(max ~60 chars)"
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
+              label="Meta title"
+              descriptionType="tooltip"
+              description="Recommended max ~60 characters."
             />
           </div>
           <div className="sm:col-span-2">
-            <label className="text-sm font-semibold text-foreground/80">Meta description</label>
-            <textarea
+            <TextAreaGroup
               name="meta_description"
               rows={3}
               placeholder="(max ~160 chars)"
-              className="mt-1 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
+              label="Meta description"
+              descriptionType="tooltip"
+              description="Recommended max ~160 characters."
             />
           </div>
           <div className="sm:col-span-2">
-            <label className="text-sm font-semibold text-foreground/80">Keywords (comma-separated)</label>
-            <input
-              name="meta_keywords"
-              placeholder="news, pantherweb, updates"
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
+            <div className="space-y-1.5">
+              <label className="block text-sm font-semibold text-foreground/80">Keywords</label>
+              <Tags
+                name="meta_keywords"
+                placeholder="Add keyword…"
+                allowDuplicates={false}
+              />
+            </div>
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-foreground/80">OG type</label>
-            <input
-              name="og_type"
-              placeholder="website"
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
+            <InputGroup name="og_type" placeholder="website" label="OG type" />
           </div>
           <div>
             <label className="text-sm font-semibold text-foreground/80">Twitter card</label>
-            <select
-              name="twitter_card"
-              defaultValue="summary_large_image"
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            >
-              <option value="summary">summary</option>
-              <option value="summary_large_image">summary_large_image</option>
-              <option value="app">app</option>
-              <option value="player">player</option>
-            </select>
+            <Select name="twitter_card" defaultValue="summary_large_image">
+              <SelectTrigger className="mt-1" />
+              <SelectContent>
+                <SelectOption value="summary">summary</SelectOption>
+                <SelectOption value="summary_large_image">summary_large_image</SelectOption>
+                <SelectOption value="app">app</SelectOption>
+                <SelectOption value="player">player</SelectOption>
+              </SelectContent>
+            </Select>
           </div>
           <div className="sm:col-span-2">
-            <label className="text-sm font-semibold text-foreground/80">OG image URL</label>
-            <input
-              name="og_image"
-              placeholder="https://…"
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
+            <InputGroup name="og_image" placeholder="https://…" label="OG image URL" />
           </div>
           <div className="sm:col-span-2">
-            <label className="text-sm font-semibold text-foreground/80">Twitter image URL</label>
-            <input
-              name="twitter_image"
-              placeholder="https://…"
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
+            <InputGroup name="twitter_image" placeholder="https://…" label="Twitter image URL" />
           </div>
           <div className="sm:col-span-2">
-            <label className="text-sm font-semibold text-foreground/80">Canonical URL</label>
-            <input
+            <InputGroup
               name="canonical_url"
               placeholder="https://example.com/path"
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
+              label="Canonical URL"
             />
           </div>
           <div className="sm:col-span-2">
-            <label className="text-sm font-semibold text-foreground/80">Robots</label>
-            <input
-              name="robots"
-              placeholder="index,follow"
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
+            <InputGroup name="robots" placeholder="index,follow" label="Robots" />
           </div>
           <div className="sm:col-span-2">
-            <label className="text-sm font-semibold text-foreground/80">Structured data (JSON-LD)</label>
-            <textarea
+            <TextAreaGroup
               name="structured_data"
               rows={4}
               placeholder='{"@context":"https://schema.org","@type":"WebSite","name":"…"}'
-              className="mt-1 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
+              label="Structured data (JSON-LD)"
             />
           </div>
 
@@ -621,60 +567,46 @@ export default async function AdminSiteSettingsPage() {
         </p>
 
         <form action={upsertSetting} className="mt-4 grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="text-sm font-semibold text-foreground/80">Key</label>
-            <input
-              name="key"
-              required
-              placeholder="site_title"
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-semibold text-foreground/80">Category</label>
-            <input
-              name="category"
-              defaultValue="general"
-              placeholder="general"
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
-          </div>
+          <InputGroup
+            name="key"
+            required
+            placeholder="site_title"
+            label="Key"
+          />
+          <InputGroup
+            name="category"
+            defaultValue="general"
+            placeholder="general"
+            label="Category"
+          />
           <div>
             <label className="text-sm font-semibold text-foreground/80">Value Type</label>
-            <select
-              name="value_type"
-              defaultValue="string"
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            >
-              <option value="string">string</option>
-              <option value="number">number</option>
-              <option value="boolean">boolean</option>
-              <option value="object">object</option>
-              <option value="array">array</option>
-            </select>
+            <Select name="value_type" defaultValue="string">
+              <SelectTrigger className="mt-1" />
+              <SelectContent>
+                <SelectOption value="string">string</SelectOption>
+                <SelectOption value="number">number</SelectOption>
+                <SelectOption value="boolean">boolean</SelectOption>
+                <SelectOption value="object">object</SelectOption>
+                <SelectOption value="array">array</SelectOption>
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex items-end gap-3">
-            <label className="inline-flex items-center gap-2 text-sm font-semibold text-foreground/80">
-              <input type="checkbox" name="is_public" defaultChecked className="h-4 w-4" />
-              Public
-            </label>
+            <Checkbox name="is_public" label="Public" defaultChecked />
           </div>
-          <div className="sm:col-span-2">
-            <label className="text-sm font-semibold text-foreground/80">Value</label>
-            <textarea
-              name="value"
-              rows={4}
-              placeholder='For object/array, paste valid JSON (e.g. {"theme":"dark"})'
-              className="mt-1 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="text-sm font-semibold text-foreground/80">Description (optional)</label>
-            <input
-              name="description"
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
-          </div>
+          <TextAreaGroup
+            className="sm:col-span-2"
+            name="value"
+            rows={4}
+            placeholder='For object/array, paste valid JSON (e.g. {"theme":"dark"})'
+            label="Value"
+          />
+          <InputGroup
+            className="sm:col-span-2"
+            name="description"
+            label="Description (optional)"
+          />
 
           <div className="sm:col-span-2">
             <Button

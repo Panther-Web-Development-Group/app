@@ -63,10 +63,13 @@ export const SidebarClient: FC<SidebarProps> = ({
           // positioning
           // Mobile: overlays header; Desktop: sits below header and sticks
           "fixed left-0 top-0 z-50 md:z-40",
+          // Desktop: sit below header
+          "md:top-16 md:h-[calc(100vh-4rem)]",
           // layout
           "flex h-screen flex-col gap-6 p-4",
           // theme
-          "bg-secondary text-secondary-foreground border-r border-(--pw-border)",
+          "bg-background/80 text-secondary-foreground border-r border-(--pw-border) backdrop-blur-xl",
+          "shadow-[0_20px_60px_var(--pw-shadow)]",
           // animate
           "transition-[transform,width,padding] duration-300 ease-in-out",
           // nicer mobile scrolling behavior

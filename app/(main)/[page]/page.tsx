@@ -111,7 +111,7 @@ export default async function DynamicPage({ params }: PageProps) {
           className={cn(
             "snap-start scroll-mt-24 relative overflow-hidden border border-(--pw-border) bg-secondary/20",
             heroFullBleed
-              ? "left-1/2 right-1/2 w-screen -translate-x-1/2 rounded-none"
+              ? "left-1/2 w-dvw -translate-x-1/2 rounded-none"
               : "rounded-2xl",
           )}
         >

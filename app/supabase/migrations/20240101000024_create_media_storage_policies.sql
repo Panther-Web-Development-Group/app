@@ -1,0 +1,66 @@
+-- Storage bucket policies for the 'media' bucket
+-- 
+-- IMPORTANT: Due to permission restrictions, storage policies cannot be created
+-- via SQL migrations. You must create these policies through the Supabase Dashboard:
+--
+-- 1. Go to Supabase Dashboard → Storage → Policies
+-- 2. Select the 'media' bucket
+-- 3. Create the following policies:
+--
+-- =========================
+-- Policy 1: Authenticated users can upload to their own folder
+-- =========================
+-- Name: "Authenticated users can upload to their own folder"
+-- Allowed operation: INSERT
+-- Target roles: authenticated
+-- USING expression: (leave empty)
+-- WITH CHECK expression:
+--   bucket_id = 'media' AND starts_with(name, auth.uid()::text || '/')
+--
+-- =========================
+-- Policy 2: Authenticated users can read their own files
+-- =========================
+-- Name: "Authenticated users can read their own files"
+-- Allowed operation: SELECT
+-- Target roles: authenticated
+-- USING expression:
+--   bucket_id = 'media' AND starts_with(name, auth.uid()::text || '/')
+-- WITH CHECK expression: (leave empty)
+--
+-- =========================
+-- Policy 3: Public can read media files (OPTIONAL)
+-- =========================
+-- Name: "Public can read media files"
+-- Allowed operation: SELECT
+-- Target roles: public
+-- USING expression:
+--   bucket_id = 'media'
+-- WITH CHECK expression: (leave empty)
+-- Note: Remove this policy if you want all files to be private
+--
+-- =========================
+-- Policy 4: Authenticated users can update their own files
+-- =========================
+-- Name: "Authenticated users can update their own files"
+-- Allowed operation: UPDATE
+-- Target roles: authenticated
+-- USING expression:
+--   bucket_id = 'media' AND starts_with(name, auth.uid()::text || '/')
+-- WITH CHECK expression:
+--   bucket_id = 'media' AND starts_with(name, auth.uid()::text || '/')
+--
+-- =========================
+-- Policy 5: Authenticated users can delete their own files
+-- =========================
+-- Name: "Authenticated users can delete their own files"
+-- Allowed operation: DELETE
+-- Target roles: authenticated
+-- USING expression:
+--   bucket_id = 'media' AND starts_with(name, auth.uid()::text || '/')
+-- WITH CHECK expression: (leave empty)
+--
+-- =========================
+-- Alternative: Use Supabase CLI with service role
+-- =========================
+-- If you have access to the Supabase CLI with service role permissions,
+-- you can run the policies.sql file (see policies.sql in this directory)

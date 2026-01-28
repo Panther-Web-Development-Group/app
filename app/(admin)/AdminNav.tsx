@@ -6,6 +6,7 @@ import {
   Calendar,
   FileText,
   Folder,
+  Images,
   LayoutDashboard,
   MessageSquare,
   Navigation,
@@ -47,6 +48,10 @@ const navGroups = [
     title: "Site",
     items: [
       { href: "/admin/navigation", label: "Navigation", icon: Navigation },
+      { href: "/admin/media", label: "Media", icon: Images },
+      { href: "/admin/files", label: "Files", icon: FileText },
+      { href: "/admin/galleries", label: "Galleries", icon: Folder },
+      { href: "/admin/slideshows", label: "Slideshows", icon: LayoutDashboard },
       { href: "/admin/site-settings", label: "Site Settings", icon: Settings },
     ],
   },

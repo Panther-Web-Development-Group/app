@@ -1,6 +1,10 @@
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/app/supabase/services/server"
 import { Button } from "@/app/components/Button"
+import { InputGroup } from "@/app/components/Form/InputGroup"
+import { TextAreaGroup } from "@/app/components/Form/TextAreaGroup"
+import { Checkbox } from "@/app/components/Form/Checkbox"
+import { EditableList } from "@/app/components/Form/EditableList"
 
 type PollRow = {
   id: string
@@ -149,46 +153,41 @@ export default async function AdminPollsPage() {
       <div className="rounded-lg border border-(--pw-border) bg-secondary/20 p-6">
         <h3 className="text-lg font-semibold text-foreground">Create Poll</h3>
         <form action={createPoll} className="mt-4 grid gap-4 sm:grid-cols-2">
+          <InputGroup
+            className="sm:col-span-2"
+            name="title"
+            required
+            label="Title"
+          />
+          <InputGroup
+            className="sm:col-span-2"
+            name="slug"
+            label="Slug (optional)"
+            placeholder="auto-from-title"
+            description="If blank, we’ll generate one from the title."
+          />
+          <TextAreaGroup
+            className="sm:col-span-2"
+            name="description"
+            label="Description (optional)"
+            rows={3}
+          />
           <div className="sm:col-span-2">
-            <label className="text-sm font-semibold text-foreground/80">Title</label>
-            <input
-              name="title"
-              required
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="text-sm font-semibold text-foreground/80">Slug (optional)</label>
-            <input
-              name="slug"
-              placeholder="auto-from-title"
-              className="mt-1 h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="text-sm font-semibold text-foreground/80">Description (optional)</label>
-            <textarea
-              name="description"
-              rows={3}
-              className="mt-1 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="text-sm font-semibold text-foreground/80">Options (one per line)</label>
-            <textarea
-              name="options"
-              rows={4}
-              placeholder={"Option 1\nOption 2\nOption 3"}
-              required
-              className="mt-1 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-accent/30"
-            />
-            <p className="mt-1 text-xs text-foreground/70">Minimum 2 options.</p>
+            <div className="space-y-1.5">
+              <label className="block text-sm font-semibold text-foreground/80">
+                Options <span aria-hidden className="text-red-500">*</span>
+              </label>
+              <EditableList
+                name="options"
+                placeholder="Enter option text…"
+                addLabel="Add option"
+                defaultValue={[]}
+              />
+              <div className="text-xs leading-5 text-foreground/70">Minimum 2 options required.</div>
+            </div>
           </div>
           <div className="sm:col-span-2 flex items-center gap-4">
-            <label className="inline-flex items-center gap-2 text-sm font-semibold text-foreground/80">
-              <input type="checkbox" name="is_published" className="h-4 w-4" />
-              Publish now
-            </label>
+            <Checkbox name="is_published" label="Publish now" />
           </div>
           <div className="sm:col-span-2">
             <Button

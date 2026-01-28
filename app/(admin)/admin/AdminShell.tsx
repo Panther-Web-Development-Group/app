@@ -20,7 +20,7 @@ export default function AdminShell({
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="min-h-screen bg-background text-foreground md:flex">
+    <div className="min-h-screen overflow-x-hidden bg-background text-foreground md:flex">
       {/* Mobile overlay */}
       {sidebarOpen ? (
         <div
@@ -33,14 +33,14 @@ export default function AdminShell({
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-50 w-72",
-          "border-r border-(--pw-border) bg-secondary text-secondary-foreground",
+          "bg-secondary text-secondary-foreground",
           "transition-transform duration-300 ease-out",
           sidebarOpen ? "translate-x-0" : "-translate-x-full",
           "md:static md:translate-x-0 md:inset-auto md:z-auto",
         )}
       >
         <div className="flex h-full flex-col">
-          <div className="flex items-center justify-between gap-3 px-4 py-4 border-b border-(--pw-border)">
+          <div className="flex items-center justify-between gap-3 px-4 py-4">
             <Link href="/admin" className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-(--pw-border) bg-accent/20 text-secondary-foreground font-semibold">
                 PW
@@ -68,9 +68,9 @@ export default function AdminShell({
       </aside>
 
       {/* Main */}
-      <div className="flex min-h-screen flex-1 flex-col">
+      <div className="flex min-h-screen overflow-x-hidden flex-1 flex-col">
         {/* Header */}
-        <header className="sticky top-0 z-30 border-b border-(--pw-border) bg-secondary/60 backdrop-blur-sm">
+        <header className="sticky top-0 z-30 bg-secondary backdrop-blur-sm">
           <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8">
             <Button
               type="button"

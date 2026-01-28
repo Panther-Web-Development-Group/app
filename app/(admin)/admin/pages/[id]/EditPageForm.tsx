@@ -1,13 +1,19 @@
 "use client"
 
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Editor, getEditorStateAsJSON } from "@/app/components/Editor"
+import { Editor, getEditorStateAsJSON } from "@/app/components/Form/Editor"
 import { EditorState, LexicalEditor } from "lexical"
 import { Eye, Pencil, Plus, Save, Trash2, X } from "lucide-react"
 import type { Json } from "@/lib/supabase/types"
 import { Button } from "@/app/components/Button"
+import { Checkbox } from "@/app/components/Form/Checkbox"
+import { TextAreaGroup } from "@/app/components/Form/TextAreaGroup"
+import { InputGroup } from "@/app/components/Form/InputGroup"
+import { RadioGroup } from "@/app/components/Form/RadioGroup"
+import { Select } from "@/app/components/Form/Select"
+import { SortableList } from "@/app/components/SortableList"
 
 type PageRenderMode = "whole" | "sections"
 type PageSectionWidth = "full" | "partial"
@@ -34,7 +40,7 @@ interface PageSection {
   width: PageSectionWidth
   column_span: number | null
   order_index: number
-  content: any
+  content: Json
 }
 
 type ActionResult<T> = { data?: T; error?: string }
@@ -98,11 +104,17 @@ interface EditPageFormProps {
   deleteSection: (id: string) => Promise<{ success?: true; error?: string }>
 }
 
-function inferSectionType(content: any): "hero" | "card" | "richText" | "custom" {
+function inferSectionType(content: unknown): "hero" | "card" | "richText" | "custom" {
   if (!content || typeof content !== "object") return "custom"
-  const t = content.type
+  const t = (content as { type?: unknown }).type
   if (t === "hero" || t === "card" || t === "richText") return t
   return "custom"
+}
+
+type JsonObject = { [key: string]: Json | undefined }
+function asJsonObject(value: Json): JsonObject | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null
+  return value as JsonObject
 }
 
 export function EditPageForm({
@@ -133,16 +145,22 @@ export function EditPageForm({
     page?.hero_constrain_to_container ?? true,
   )
 
+  // Slug behavior:
+  // - when locked, slug is read-only and always auto-generated from Title
+  // - when unlocked, slug is user-editable and stops auto-updating
+  const [slugLocked, setSlugLocked] = useState<boolean>(isNew ? true : false)
+
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // Whole-page editor state
   const [editorState, setEditorState] = useState<string | null>(() => {
-    const c: any = page?.content
+    const c = page?.content as unknown
     if (!c) return null
     if (typeof c === "string") return c
-    if (typeof c === "object" && c.root) return JSON.stringify(c)
-    if (typeof c === "object" && c.html) return c.html
+    if (typeof c === "object" && c && "root" in c) return JSON.stringify(c)
+    if (typeof c === "object" && c && "html" in c && typeof (c as { html?: unknown }).html === "string")
+      return (c as { html: string }).html
     return null
   })
   const editorRef = useRef<LexicalEditor | null>(null)
@@ -155,6 +173,11 @@ export function EditPageForm({
       ),
     [sections],
   )
+
+  const [orderedSections, setOrderedSections] = useState<PageSection[]>(sectionsSorted)
+  useEffect(() => {
+    setOrderedSections(sectionsSorted)
+  }, [sectionsSorted])
 
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null)
   const [sectionTitle, setSectionTitle] = useState("")
@@ -201,17 +224,18 @@ export function EditPageForm({
     const t = inferSectionType(s.content)
     setSectionType(t)
 
-    const thumbs = (s.content?.thumbnails ?? s.content?.thumbnail) as unknown
-    setThumbnailsJson(thumbs ? JSON.stringify(thumbs, null, 2) : "[]")
+    const obj = asJsonObject(s.content)
+    const thumbs = obj?.thumbnails ?? obj?.thumbnail
+    setThumbnailsJson(thumbs != null ? JSON.stringify(thumbs, null, 2) : "[]")
 
     if (t === "hero") {
-      setHeroHeadline(s.content?.headline || "")
-      setHeroSubheadline(s.content?.subheadline || "")
+      setHeroHeadline(typeof obj?.headline === "string" ? obj.headline : "")
+      setHeroSubheadline(typeof obj?.subheadline === "string" ? obj.subheadline : "")
     } else if (t === "card") {
-      setCardTitle(s.content?.title || "")
-      setCardBody(s.content?.body || "")
+      setCardTitle(typeof obj?.title === "string" ? obj.title : "")
+      setCardBody(typeof obj?.body === "string" ? obj.body : "")
     } else if (t === "richText") {
-      setRichHtml(s.content?.html || "")
+      setRichHtml(typeof obj?.html === "string" ? obj.html : "")
     } else {
       setCustomJson(JSON.stringify(s.content ?? {}, null, 2))
     }
@@ -227,19 +251,27 @@ export function EditPageForm({
     }
 
     if (sectionType === "hero") {
-      const base: any = { type: "hero", headline: heroHeadline, subheadline: heroSubheadline }
+      const base: Record<string, unknown> = {
+        type: "hero",
+        headline: heroHeadline,
+        subheadline: heroSubheadline,
+      }
       if (thumbnails && thumbnails.length) base.thumbnails = thumbnails
-      return base
+      return base as unknown as Json
     }
     if (sectionType === "card") {
-      const base: any = { type: "card", title: cardTitle, body: cardBody }
+      const base: Record<string, unknown> = {
+        type: "card",
+        title: cardTitle,
+        body: cardBody,
+      }
       if (thumbnails && thumbnails.length) base.thumbnails = thumbnails
-      return base
+      return base as unknown as Json
     }
     if (sectionType === "richText") {
-      const base: any = { type: "richText", html: richHtml }
+      const base: Record<string, unknown> = { type: "richText", html: richHtml }
       if (thumbnails && thumbnails.length) base.thumbnails = thumbnails
-      return base
+      return base as unknown as Json
     }
     try {
       return JSON.parse(customJson || "{}")
@@ -251,7 +283,6 @@ export function EditPageForm({
   const handleEditorChange = async (
     _state: EditorState,
     editor: LexicalEditor,
-    _html: string,
   ) => {
     editorRef.current = editor
     const json = await getEditorStateAsJSON(editor)
@@ -399,6 +430,36 @@ export function EditPageForm({
     }
   }
 
+  const persistSectionOrder = async (next: PageSection[]) => {
+    if (!page) return
+    setSaving(true)
+    setError(null)
+
+    // Renumber 1..N in the order shown
+    const renumbered = next.map((s, idx) => ({ ...s, order_index: idx + 1 }))
+    setOrderedSections(renumbered)
+
+    try {
+      for (const s of renumbered) {
+        const res = await updateSection(s.id, { order_index: s.order_index })
+        if (res.error) {
+          setError(res.error)
+          return
+        }
+      }
+      router.refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to reorder sections")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleReorderSections = (next: PageSection[]) => {
+    // Renumber locally for accurate badges while dragging
+    setOrderedSections(next.map((s, idx) => ({ ...s, order_index: idx + 1 })))
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -429,44 +490,59 @@ export function EditPageForm({
 
       <div className="space-y-6 rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
         <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              Title *
-            </label>
-            <input
-              value={title}
-              onChange={(e) => {
-                setTitle(e.target.value)
-                if (isNew && !slug) setSlug(generateSlug(e.target.value))
-              }}
-              className="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder-zinc-500 dark:focus:border-zinc-600 dark:focus:ring-zinc-600"
-              placeholder="Page title"
-            />
-          </div>
+          <InputGroup
+            required
+            label="Title"
+            value={title}
+            onChange={(e) => {
+              const nextTitle = e.target.value
+              setTitle(nextTitle)
+              if (slugLocked) setSlug(generateSlug(nextTitle))
+            }}
+            placeholder="Page title"
+            labelClassName="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+            inputClassName="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder-zinc-500 dark:focus:border-zinc-600 dark:focus:ring-zinc-600"
+          />
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              Slug *
-            </label>
-            <input
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              className="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder-zinc-500 dark:focus:border-zinc-600 dark:focus:ring-zinc-600"
-              placeholder="page-slug"
-            />
-          </div>
+          <InputGroup
+            required
+            label="Slug"
+            value={slug}
+            readOnly={slugLocked}
+            onChange={(e) => {
+              if (slugLocked) return
+              setSlug(e.target.value)
+            }}
+            placeholder="page-slug"
+            labelClassName="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+            inputClassName="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 read-only:bg-zinc-50 read-only:text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder-zinc-500 dark:focus:border-zinc-600 dark:focus:ring-zinc-600 dark:read-only:bg-zinc-950 dark:read-only:text-zinc-400"
+          />
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Checkbox
+            checked={slugLocked}
+            onCheckedChange={(next) => {
+              setSlugLocked(next)
+              if (next) setSlug(generateSlug(title))
+            }}
+            label={
+              <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                Auto-generate slug from title
+              </span>
+            }
+          />
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            Summary
-          </label>
-          <textarea
+          <TextAreaGroup
+            name="summary"
             value={summary || ""}
             onChange={(e) => setSummary(e.target.value)}
-            rows={3}
-            className="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder-zinc-500 dark:focus:border-zinc-600 dark:focus:ring-zinc-600"
             placeholder="Brief description of the page"
+            label="Summary"
+            rows={3}
+            textAreaClassName="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder-zinc-500 dark:focus:border-zinc-600 dark:focus:ring-zinc-600"
           />
         </div>
 
@@ -481,53 +557,47 @@ export function EditPageForm({
               </p>
             </div>
 
-            <label className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-              <input
-                type="checkbox"
-                checked={heroImageEnabled}
-                onChange={(e) => setHeroImageEnabled(e.target.checked)}
-                className="h-4 w-4 rounded border-zinc-300 text-zinc-600 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:ring-zinc-600"
-              />
-              Enabled
-            </label>
+            <Checkbox
+              checked={heroImageEnabled}
+              onCheckedChange={setHeroImageEnabled}
+              label={<span className="text-sm text-zinc-700 dark:text-zinc-300">Enabled</span>}
+            />
           </div>
 
           {heroImageEnabled ? (
             <div className="grid gap-3 md:grid-cols-2">
               <div className="md:col-span-2">
-                <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                  Hero image URL
-                </label>
-                <input
+                <InputGroup
+                  label="Hero image URL"
+                  labelClassName="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
                   value={heroImageUrl}
                   onChange={(e) => setHeroImageUrl(e.target.value)}
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                   placeholder="https://…"
+                  inputClassName="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                  Alt text (optional)
-                </label>
-                <input
+                <InputGroup
+                  label="Alt text (optional)"
+                  labelClassName="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
                   value={heroImageAlt}
                   onChange={(e) => setHeroImageAlt(e.target.value)}
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                   placeholder="Describe the image"
+                  inputClassName="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                 />
               </div>
 
               <div className="flex items-end">
-                <label className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                  <input
-                    type="checkbox"
-                    checked={heroConstrainToContainer}
-                    onChange={(e) => setHeroConstrainToContainer(e.target.checked)}
-                    className="h-4 w-4 rounded border-zinc-300 text-zinc-600 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:ring-zinc-600"
-                  />
-                  Constrain hero to content width
-                </label>
+                <Checkbox
+                  checked={heroConstrainToContainer}
+                  onCheckedChange={setHeroConstrainToContainer}
+                  label={
+                    <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                      Constrain hero to content width
+                    </span>
+                  }
+                />
               </div>
             </div>
           ) : null}
@@ -538,33 +608,30 @@ export function EditPageForm({
             <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
               Mode
             </label>
-            <select
+            <RadioGroup
               value={renderMode}
-              onChange={(e) => setRenderMode(e.target.value as PageRenderMode)}
-              className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+              onValueChange={(v) => setRenderMode(v as PageRenderMode)}
+              className="flex items-center gap-3"
             >
-              <option value="whole">Whole page</option>
-              <option value="sections">Sections</option>
-            </select>
+              <RadioGroup.Option value="whole" label="Whole page" />
+              <RadioGroup.Option value="sections" label="Sections" />
+            </RadioGroup>
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-            <input
-              type="checkbox"
-              checked={isPublished}
-              onChange={(e) => setIsPublished(e.target.checked)}
-              className="h-4 w-4 rounded border-zinc-300 text-zinc-600 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:focus:ring-zinc-600"
-            />
-            Published
-          </label>
+          <Checkbox
+            checked={isPublished}
+            onCheckedChange={setIsPublished}
+            label={<span className="text-sm text-zinc-700 dark:text-zinc-300">Published</span>}
+          />
         </div>
 
         {renderMode === "whole" ? (
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              Content *
-            </label>
             <Editor
+              label="Content"
+              required
+              labelClassName="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              contentMinHeightClassName="min-h-[220px]"
               initialContent={editorState}
               onChange={handleEditorChange}
               placeholder="Write your page content here..."
@@ -585,7 +652,7 @@ export function EditPageForm({
                 type="button"
                 onClick={() => {
                   resetSectionDraft()
-                  setSectionOrder((sectionsSorted.at(-1)?.order_index ?? 0) + 1)
+                  setSectionOrder((orderedSections.at(-1)?.order_index ?? 0) + 1)
                 }}
                 className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
                 variant="ghost"
@@ -595,17 +662,18 @@ export function EditPageForm({
               </Button>
             </div>
 
-            {sectionsSorted.length === 0 ? (
+            {orderedSections.length === 0 ? (
               <div className="rounded-lg border border-zinc-200 bg-white p-4 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
                 No sections yet.
               </div>
             ) : (
-              <div className="space-y-2">
-                {sectionsSorted.map((s) => (
-                  <div
-                    key={s.id}
-                    className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
-                  >
+              <SortableList
+                items={orderedSections}
+                onReorder={handleReorderSections}
+                onReorderEnd={persistSectionOrder}
+                itemClassName="rounded-lg border border-zinc-200 bg-white p-4 pl-12 dark:border-zinc-800 dark:bg-zinc-950"
+                renderItem={(s) => (
+                  <div className="flex items-center justify-between">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="rounded bg-zinc-100 px-2 py-0.5 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
@@ -645,8 +713,9 @@ export function EditPageForm({
                       </Button>
                     </div>
                   </div>
-                ))}
-              </div>
+                )}
+              >
+              </SortableList>
             )}
 
             {/* Section editor */}
@@ -657,66 +726,62 @@ export function EditPageForm({
 
               <div className="grid gap-3 md:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                    Section title
-                  </label>
-                  <input
-                    value={sectionTitle}
-                    onChange={(e) => setSectionTitle(e.target.value)}
-                    className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-                    placeholder="e.g. Hero"
-                  />
+                <InputGroup
+                  label="Section title"
+                  labelClassName="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
+                  value={sectionTitle}
+                  onChange={(e) => setSectionTitle(e.target.value)}
+                  placeholder="e.g. Hero"
+                  inputClassName="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                />
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                    Icon (lucide name)
-                  </label>
-                  <input
-                    value={sectionIcon}
-                    onChange={(e) => setSectionIcon(e.target.value)}
-                    className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-                    placeholder="e.g. home, info, sparkles"
-                  />
+                <InputGroup
+                  label="Icon (lucide name)"
+                  labelClassName="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
+                  value={sectionIcon}
+                  onChange={(e) => setSectionIcon(e.target.value)}
+                  placeholder="e.g. home, info, sparkles"
+                  inputClassName="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                />
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <div className="flex-1">
+                <div className="grid gap-3 sm:grid-cols-12 md:col-span-2">
+                  <div className="sm:col-span-6">
                     <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
                       Width
                     </label>
-                    <select
+                    <RadioGroup
                       value={sectionWidth}
-                      onChange={(e) => setSectionWidth(e.target.value as PageSectionWidth)}
-                      className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                      onValueChange={(v) => setSectionWidth(v as PageSectionWidth)}
+                      className="mt-1 flex flex-wrap gap-3"
                     >
-                      <option value="full">Full</option>
-                      <option value="partial">Partial</option>
-                    </select>
+                      <RadioGroup.Option value="full" label="Full" />
+                      <RadioGroup.Option value="partial" label="Partial" />
+                    </RadioGroup>
                   </div>
-                  <div className="w-32">
-                    <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                      Span
-                    </label>
-                    <input
+                  <div className="sm:col-span-3">
+                    <InputGroup
+                      label="Span"
+                      labelClassName="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
                       type="number"
                       min={1}
                       max={12}
                       value={sectionSpan}
                       onChange={(e) => setSectionSpan(Number(e.target.value))}
                       disabled={sectionWidth !== "partial"}
-                      className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                      inputClassName="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
                     />
                   </div>
-                  <div className="w-28">
-                    <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                      Order
-                    </label>
-                    <input
+                  <div className="sm:col-span-3">
+                    <InputGroup
+                      label="Order"
+                      labelClassName="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
                       type="number"
                       value={sectionOrder}
                       onChange={(e) => setSectionOrder(Number(e.target.value))}
-                      className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                      inputClassName="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
                     />
                   </div>
                 </div>
@@ -725,18 +790,20 @@ export function EditPageForm({
                   <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
                     Content type
                   </label>
-                  <select
+                  <Select
                     value={sectionType}
-                    onChange={(e) =>
-                      setSectionType(e.target.value as "hero" | "card" | "richText" | "custom")
+                    onValueChange={(v) =>
+                      setSectionType(v as "hero" | "card" | "richText" | "custom")
                     }
-                    className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
                   >
-                    <option value="hero">Hero</option>
-                    <option value="card">Card</option>
-                    <option value="richText">Rich text (HTML)</option>
-                    <option value="custom">Custom JSON</option>
-                  </select>
+                    <Select.Trigger className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50" />
+                    <Select.Content>
+                      <Select.Option value="hero">Hero</Select.Option>
+                      <Select.Option value="card">Card</Select.Option>
+                      <Select.Option value="richText">Rich text (HTML)</Select.Option>
+                      <Select.Option value="custom">Custom JSON</Select.Option>
+                    </Select.Content>
+                  </Select>
                 </div>
               </div>
 
@@ -744,23 +811,21 @@ export function EditPageForm({
                 {sectionType === "hero" ? (
                   <div className="grid gap-3 md:grid-cols-2">
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                        Headline
-                      </label>
-                      <input
+                      <InputGroup
+                        label="Headline"
+                        labelClassName="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
                         value={heroHeadline}
                         onChange={(e) => setHeroHeadline(e.target.value)}
-                        className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                        inputClassName="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                        Subheadline
-                      </label>
-                      <input
+                      <InputGroup
+                        label="Subheadline"
+                        labelClassName="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
                         value={heroSubheadline}
                         onChange={(e) => setHeroSubheadline(e.target.value)}
-                        className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                        inputClassName="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
                       />
                     </div>
                   </div>
@@ -769,24 +834,22 @@ export function EditPageForm({
                 {sectionType === "card" ? (
                   <div className="space-y-3">
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                        Card title
-                      </label>
-                      <input
+                      <InputGroup
+                        label="Card title"
+                        labelClassName="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
                         value={cardTitle}
                         onChange={(e) => setCardTitle(e.target.value)}
-                        className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                        inputClassName="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                        Body
-                      </label>
-                      <textarea
+                      <TextAreaGroup
+                        label="Body"
+                        labelClassName="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
                         value={cardBody}
                         onChange={(e) => setCardBody(e.target.value)}
                         rows={3}
-                        className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                        textAreaClassName="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
                       />
                     </div>
                   </div>
@@ -794,46 +857,45 @@ export function EditPageForm({
 
                 {sectionType === "richText" ? (
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                      HTML
-                    </label>
-                    <textarea
-                      value={richHtml}
-                      onChange={(e) => setRichHtml(e.target.value)}
-                      rows={6}
-                      className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 font-mono text-xs text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-                      placeholder="<p>Hello world</p>"
+                    <Editor
+                      resetKey={`section-richText-${editingSectionId ?? "new"}`}
+                      label="Content"
+                      labelClassName="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
+                      initialContent={richHtml}
+                      onChange={(_state, _editor, html) => setRichHtml(html)}
+                      placeholder="Write rich text content here…"
+                      editorContainerClassName="border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900"
+                      contentMinHeightClassName="min-h-[144px]"
+                      contentClassName="px-3 py-2 text-sm text-zinc-900 dark:text-zinc-50 prose-zinc dark:prose-invert"
                     />
                   </div>
                 ) : null}
 
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                    Thumbnails (JSON array)
-                  </label>
-                  <textarea
+                  <TextAreaGroup
+                    label="Thumbnails (JSON array)"
+                    labelClassName="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
                     value={thumbnailsJson}
                     onChange={(e) => setThumbnailsJson(e.target.value)}
                     rows={4}
-                    className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 font-mono text-xs text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
                     placeholder='[{"src":"https://…","caption":"…","alt":"…"}]'
+                    textAreaClassName="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 font-mono text-xs text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                    description="Optional. Use `src` (or `url`) plus optional `caption` and `alt`."
+                    descriptionClassName="mt-1 text-xs text-zinc-500 dark:text-zinc-400"
+                    collapseOnBlur={false}
                   />
-                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                    Optional. Use `src` (or `url`) plus optional `caption` and `alt`.
-                  </p>
                 </div>
 
                 {sectionType === "custom" ? (
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                      JSON
-                    </label>
-                    <textarea
+                    <TextAreaGroup
+                      label="JSON"
+                      labelClassName="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
                       value={customJson}
                       onChange={(e) => setCustomJson(e.target.value)}
                       rows={6}
-                      className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 font-mono text-xs text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
                       placeholder='{"type":"hero","headline":"Welcome"}'
+                      textAreaClassName="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 font-mono text-xs text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
                     />
                   </div>
                 ) : null}

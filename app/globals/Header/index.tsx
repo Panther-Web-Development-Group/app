@@ -14,8 +14,12 @@ export const Header: FC<HeaderProps> = ({
   return (
     <header 
       className={cn(
-        "sticky top-0 z-30 w-full border-b backdrop-blur-sm",
-        "border-(--pw-border) bg-secondary/60 text-foreground",
+        "sticky top-0 z-30 w-full border-b",
+        "border-(--pw-border) text-foreground",
+        // Techy glass surface
+        "bg-background/60 backdrop-blur-md",
+        // Subtle elevation
+        "shadow-[0_10px_30px_var(--pw-shadow)]",
         className
       )}
       {...props}
