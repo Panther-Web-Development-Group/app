@@ -1,11 +1,14 @@
-import { FC } from "react"
+"use client"
+
+import { type FC } from "react"
 import { ButtonProps } from "./types"
 import { buttonVariants } from "./config"
 import { cn } from "@/lib/cn"
 import { Link } from "../Link"
+import { Tooltip } from "../Tooltip"
 import { ButtonOnlyProps, ButtonLinkProps } from "./types"
 
-export const Button: FC<ButtonProps> = props => {
+export const Button: FC<ButtonProps> = (props) => {
   const {
     as = "button",
     children,
@@ -18,6 +21,8 @@ export const Button: FC<ButtonProps> = props => {
     loadingClassName,
     icon,
     iconClassName,
+    tooltip,
+    tooltipSide = "top",
     ...restProps
   } = props
 
@@ -28,17 +33,28 @@ export const Button: FC<ButtonProps> = props => {
     className
   )
 
-  return (as === "link") ? (
-    <Link {...(restProps as ButtonLinkProps)} className={buttonClassName}>
-      {icon && <span className={cn(iconClassName)}>{icon}</span>}
-      {buttonChildren}
-    </Link>
-  ) : (
-    <button {...(restProps as ButtonOnlyProps)} className={buttonClassName}>
-      {icon && <span className={cn(iconClassName)}>{icon}</span>}
-      {buttonChildren}
-    </button>
-  )
+  const button =
+    as === "link" ? (
+      <Link {...(restProps as ButtonLinkProps)} className={buttonClassName}>
+        {icon ? <span className={cn(iconClassName)}>{icon}</span> : null}
+        {buttonChildren}
+      </Link>
+    ) : (
+      <button {...(restProps as ButtonOnlyProps)} className={buttonClassName}>
+        {icon ? <span className={cn(iconClassName)}>{icon}</span> : null}
+        {buttonChildren}
+      </button>
+    )
+
+  if (tooltip) {
+    return (
+      <Tooltip content={tooltip} side={tooltipSide}>
+        {button}
+      </Tooltip>
+    )
+  }
+
+  return button
 }
 
 Object.assign(Button, {

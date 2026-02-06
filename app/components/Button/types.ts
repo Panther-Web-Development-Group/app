@@ -1,9 +1,10 @@
-import { 
+import type { 
+  DetailedHTMLProps,
   ButtonHTMLAttributes,
-  ReactNode,
+  ReactNode 
 } from "react"
-import { ClassValue } from "clsx"
-import { LinkProps } from "../Link/types"
+import type { ClassValue } from "clsx"
+import type { LinkProps } from "../Link/types"
 
 export type ButtonType = 
   | "button"
@@ -35,6 +36,8 @@ export type ButtonSize =
 
 export type ButtonSizeWithAliases = ButtonSize | "xs" | "sm" | "md" | "lg" | "xl"
 
+type TooltipSide = "top" | "bottom" | "left" | "right"
+
 type CommonButtonProps = {
   icon?: ReactNode
   iconClassName?: ClassValue
@@ -44,6 +47,10 @@ type CommonButtonProps = {
   loadingClassName?: ClassValue
   variant?: ButtonVariant
   size?: ButtonSizeWithAliases
+  /** Tooltip shown on hover/focus */
+  tooltip?: ReactNode
+  /** Tooltip position (default "top") */
+  tooltipSide?: TooltipSide
   children: ReactNode
 }
 
@@ -51,7 +58,7 @@ export type ButtonProps =
   | ({
       as?: "button"
       type?: ButtonType
-    } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "type" | "as"> & CommonButtonProps)
+    } & Omit<DetailedHTMLProps<ButtonHTMLAttributes<HTMLButtonElement>, HTMLButtonElement>, "type" | "as"> & CommonButtonProps)
   | ({
       as: "link"
       href: string

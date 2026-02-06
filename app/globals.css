@@ -73,6 +73,29 @@
   }
 }
 
+/* Form Progress indeterminate animation */
+@keyframes progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+/* Form CircularProgress indeterminate (spinner) */
+@keyframes circular-progress-indeterminate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 body {
   background:
     radial-gradient(1200px circle at 20% -10%, color-mix(in oklab, var(--pw-info) 18%, transparent) 0%, transparent 55%),
@@ -80,4 +103,55 @@ body {
     var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Editor styles */
+.editor-input {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
+}
+
+.editor-input::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.editor-input::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.editor-input::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .editor-input::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Toolbar scrollbar */
+.toolbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.05) transparent;
+}
+
+.toolbar::-webkit-scrollbar {
+  height: 6px;
+}
+
+.toolbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.toolbar::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .toolbar::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
 }

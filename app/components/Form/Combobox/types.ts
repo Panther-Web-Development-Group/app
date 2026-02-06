@@ -51,10 +51,11 @@ export type ComboboxContextValue = {
   activeValue?: string
   setActiveValue: (v: string | undefined) => void
 
-  registerOption: (value: string, data: { text: string; disabled?: boolean }) => void
+  registerOption: (value: string, data: { text: string; disabled?: boolean }, element: HTMLElement | null) => void
   unregisterOption: (value: string) => void
   getOptionText: (value: string) => string | undefined
   getOptionDisabled: (value: string) => boolean
+  getOptionElement: (value: string) => HTMLElement | null | undefined
   getVisibleValues: () => string[]
   getOptionId: (value: string) => string
 
@@ -71,6 +72,10 @@ export type ComboboxInputProps = Omit<
 
 export type ComboboxContentProps = HTMLAttributes<HTMLDivElement> & {
   className?: ClassValue
+  /** Positioning strategy: 'auto' (viewport-aware), 'bottom' (always below), 'top' (always above) */
+  position?: "auto" | "bottom" | "top"
+  /** Maximum height of the content dropdown */
+  maxHeight?: number | string
 }
 
 export type ComboboxOptionProps = Omit<HTMLAttributes<HTMLDivElement>, "onClick"> & {

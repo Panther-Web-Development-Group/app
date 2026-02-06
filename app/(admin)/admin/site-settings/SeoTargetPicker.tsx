@@ -1,4 +1,4 @@
- "use client"
+"use client"
 import { useCallback, useMemo, useState } from "react"
 import { RadioGroup } from "@/app/components/Form/RadioGroup"
 import { Combobox } from "@/app/components/Form/Combobox"
@@ -15,7 +15,7 @@ export function SeoTargetPicker({
   posts: MinimalRow[]
   className?: string
 }) {
-  const [targetType, setTargetType] = useState<"page" | "post">("page")
+  const [targetType, setTargetType] = useState<"global" | "page" | "post">("global")
   const [targetId, setTargetId] = useState<string | undefined>(undefined)
 
   const items = useMemo(() => {
@@ -28,7 +28,7 @@ export function SeoTargetPicker({
   }, [pages, posts, targetType])
 
   const handleTypeChange = useCallback((next: string) => {
-    const t = next === "post" ? "post" : "page"
+    const t = next === "post" ? "post" : next === "global" ? "global" : "page"
     setTargetType(t)
     setTargetId(undefined)
   }, [])
@@ -43,38 +43,45 @@ export function SeoTargetPicker({
           onValueChange={handleTypeChange}
           className="mt-2 flex flex-wrap gap-4"
         >
+          <RadioGroup.Option value="global" label="Global site" />
           <RadioGroup.Option value="page" label="Page" />
           <RadioGroup.Option value="post" label="Post" />
         </RadioGroup>
       </div>
 
-      <div className="sm:col-span-2">
-        <div className="text-sm font-semibold text-foreground/80">Target</div>
-        <Combobox name="target_id" value={targetId} onValueChange={setTargetId} className="mt-1">
-          <Combobox.Input
-            placeholder={targetType === "page" ? "Search pages…" : "Search posts…"}
-          />
-          <Combobox.Content>
-            {items.map((i) => (
-              <Combobox.Option
-                key={i.id}
-                value={i.id}
-                textValue={`${i.title} ${i.slug} ${i.is_published ? "" : "draft"} ${targetType}`}
-              >
-                <div className="min-w-0">
-                  <div className="truncate font-medium">
-                    {i.title} {!i.is_published ? <span className="text-xs text-foreground/60">[draft]</span> : null}
-                  </div>
-                  <div className="mt-0.5 truncate text-xs text-foreground/60">/{i.slug}</div>
-                </div>
-              </Combobox.Option>
-            ))}
-          </Combobox.Content>
-        </Combobox>
-        <p className="mt-1 text-xs text-foreground/70">
-          Pick a {targetType} to attach SEO metadata to.
+      {targetType === "global" ? (
+        <p className="sm:col-span-2 text-sm text-foreground/70">
+          Site-wide SEO (title, description, analytics). Leave target_id empty.
         </p>
-      </div>
+      ) : (
+        <div className="sm:col-span-2">
+          <div className="text-sm font-semibold text-foreground/80">Target</div>
+          <Combobox name="target_id" value={targetId} onValueChange={setTargetId} className="mt-1">
+            <Combobox.Input
+              placeholder={targetType === "page" ? "Search pages…" : "Search posts…"}
+            />
+            <Combobox.Content>
+              {items.map((i) => (
+                <Combobox.Option
+                  key={i.id}
+                  value={i.id}
+                  textValue={`${i.title} ${i.slug} ${i.is_published ? "" : "draft"} ${targetType}`}
+                >
+                  <div className="min-w-0">
+                    <div className="truncate font-medium">
+                      {i.title} {!i.is_published ? <span className="text-xs text-foreground/60">[draft]</span> : null}
+                    </div>
+                    <div className="mt-0.5 truncate text-xs text-foreground/60">/{i.slug}</div>
+                  </div>
+                </Combobox.Option>
+              ))}
+            </Combobox.Content>
+          </Combobox>
+          <p className="mt-1 text-xs text-foreground/70">
+            Pick a {targetType} to attach SEO metadata to.
+          </p>
+        </div>
+      )}
     </div>
   )
 }

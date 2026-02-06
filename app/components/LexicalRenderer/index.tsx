@@ -6,6 +6,10 @@ import { createEditor } from "lexical"
 import { HeadingNode, QuoteNode } from "@lexical/rich-text"
 import { ListItemNode, ListNode } from "@lexical/list"
 import { AutoLinkNode, LinkNode } from "@lexical/link"
+import { ImageNode, CardNode, VideoNode } from "@/app/components/Form/Editor/nodes"
+import { Image } from "@/app/components/Image"
+import { Card } from "@/app/components/Card"
+import { Video } from "@/app/components/Video"
 
 interface LexicalRendererProps {
   content: any
@@ -60,11 +64,39 @@ export function LexicalRenderer({ content, className }: LexicalRendererProps) {
       return ""
     }
 
+    // Render custom blocks first, then convert rest to HTML
+    const renderCustomBlocks = (node: any): string => {
+      if (node.type === "image") {
+        const { src, alt, caption } = node
+        return `<figure class="my-4"><img src="${src}" alt="${alt || ""}" class="w-full h-auto rounded-lg" /><figcaption class="text-sm text-center text-foreground/70 mt-2">${caption || ""}</figcaption></figure>`
+      }
+      if (node.type === "card") {
+        const { title, body, image, link } = node
+        let cardHtml = `<div class="my-4 rounded-lg border border-(--pw-border) bg-background/10 overflow-hidden">`
+        if (image?.src) {
+          cardHtml += `<div class="relative w-full aspect-video bg-background/5 overflow-hidden"><img src="${image.src}" alt="${image.alt || title || ""}" class="w-full h-full object-cover" /></div>`
+        }
+        cardHtml += `<div class="p-4 space-y-3">`
+        if (title) cardHtml += `<h3 class="text-lg font-semibold text-foreground">${title}</h3>`
+        if (body) cardHtml += `<p class="text-sm leading-6 text-foreground/75">${body}</p>`
+        if (link?.href) {
+          cardHtml += `<a href="${link.href}" class="text-sm font-semibold text-foreground/80 underline hover:text-foreground">${link.label || "Learn more"}</a>`
+        }
+        cardHtml += `</div></div>`
+        return cardHtml
+      }
+      if (node.type === "video") {
+        const { src, poster, autoplay, controls, loop, muted } = node
+        return `<div class="my-4 rounded-lg border border-(--pw-border) overflow-hidden"><video src="${src}" ${poster ? `poster="${poster}"` : ""} ${autoplay ? "autoplay" : ""} ${controls ? "controls" : ""} ${loop ? "loop" : ""} ${muted ? "muted" : ""} class="w-full"></video></div>`
+      }
+      return ""
+    }
+
     // Create a temporary editor to convert Lexical JSON to HTML
     try {
       const editor = createEditor({
         namespace: "lexical-renderer",
-        nodes: [HeadingNode, ListNode, ListItemNode, QuoteNode, AutoLinkNode, LinkNode],
+        nodes: [HeadingNode, ListNode, ListItemNode, QuoteNode, AutoLinkNode, LinkNode, ImageNode, CardNode, VideoNode],
         onError: () => {
           // Silent error handling
         },
@@ -72,7 +104,20 @@ export function LexicalRenderer({ content, className }: LexicalRendererProps) {
 
       editor.setEditable(false)
 
-      // Generate HTML from the editor state
+      // First, extract custom blocks and render them
+      const extractAndRenderCustomBlocks = (node: any): string => {
+        if (node.type === "image" || node.type === "card" || node.type === "video") {
+          return renderCustomBlocks(node)
+        }
+        if (node.children) {
+          return node.children.map(extractAndRenderCustomBlocks).join("")
+        }
+        return ""
+      }
+
+      const customBlocksHtml = extractAndRenderCustomBlocks(lexicalState.root)
+
+      // Generate HTML from the editor state (this will skip decorator nodes)
       let htmlOutput = ""
       const parsedState = editor.parseEditorState(JSON.stringify(lexicalState))
       editor.setEditorState(parsedState)
@@ -81,7 +126,9 @@ export function LexicalRenderer({ content, className }: LexicalRendererProps) {
         htmlOutput = $generateHtmlFromNodes(editor, null)
       })
 
-      return sanitizeHtml(htmlOutput)
+      // Combine custom blocks HTML with regular HTML
+      // Note: This is a simplified approach. For production, you'd want to properly interleave them
+      return sanitizeHtml(htmlOutput + customBlocksHtml)
     } catch (error) {
       console.error("Error rendering Lexical content:", error)
       // Fallback: try to extract text content

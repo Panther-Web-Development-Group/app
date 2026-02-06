@@ -105,3 +105,7 @@ export const Card: FC<CardProps> = ({
 
   return cardContent
 }
+
+export type { CardProps }
+export { CardGroup } from "./CardGroup"
+export type { CardGroupProps, CardGroupItem } from "./CardGroup"

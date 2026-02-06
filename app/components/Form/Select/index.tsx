@@ -1,4 +1,4 @@
- "use client"
+"use client"
 import {
   useCallback,
   useEffect,
@@ -62,17 +62,61 @@ const SelectRoot: FC<PropsWithChildren<SelectProps>> = ({
     [isControlled, multiple, onValueChange]
   )
 
-  const [open, setOpen] = useState(false)
+  const [open, setOpenState] = useState(false)
+  const [focusedValue, setFocusedValue] = useState<string | null>(null)
+  const [labelsVersion, setLabelsVersion] = useState(0)
+
+  const setOpen = useCallback(
+    (newOpen: boolean) => {
+      setOpenState(newOpen)
+      if (!newOpen) {
+        // Reset focused value when closing
+        setFocusedValue(null)
+      } else {
+        // Set initial focused value when opening
+        // Use setTimeout to avoid synchronous setState
+        setTimeout(() => {
+          if (multiple) {
+            const arr = Array.isArray(normalizedValue) ? normalizedValue : []
+            if (arr.length > 0) setFocusedValue(arr[0])
+          } else {
+            const v = typeof normalizedValue === "string" ? normalizedValue : null
+            setFocusedValue(v)
+          }
+        }, 0)
+      }
+    },
+    [multiple, normalizedValue]
+  )
 
   const optionLabelsRef = useRef<Map<string, ReactNode>>(new Map())
-  const registerOption = useCallback((v: string, label: ReactNode) => {
+  const optionElementsRef = useRef<Map<string, HTMLElement | null>>(new Map())
+  const optionValuesRef = useRef<Set<string>>(new Set())
+
+  const registerOption = useCallback((v: string, label: ReactNode, element: HTMLElement | null) => {
     optionLabelsRef.current.set(v, label)
+    optionElementsRef.current.set(v, element)
+    optionValuesRef.current.add(v)
+    setLabelsVersion((prev) => prev + 1)
   }, [])
+
   const unregisterOption = useCallback((v: string) => {
     optionLabelsRef.current.delete(v)
+    optionElementsRef.current.delete(v)
+    optionValuesRef.current.delete(v)
+    setLabelsVersion((prev) => prev + 1)
   }, [])
+
+  const getAllOptionValues = useCallback(() => {
+    return Array.from(optionValuesRef.current)
+  }, [])
+
   const getOptionLabel = useCallback((v: string) => {
     return optionLabelsRef.current.get(v)
+  }, [])
+
+  const getOptionElement = useCallback((v: string) => {
+    return optionElementsRef.current.get(v)
   }, [])
 
   const generatedId = useId()
@@ -80,6 +124,8 @@ const SelectRoot: FC<PropsWithChildren<SelectProps>> = ({
   const listboxId = `${generatedId}-listbox`
 
   const rootRef = useRef<HTMLDivElement>(null)
+
+  // Close on outside click
   useEffect(() => {
     if (!open) return
 
@@ -88,11 +134,21 @@ const SelectRoot: FC<PropsWithChildren<SelectProps>> = ({
       if (!el) return
       if (e.target instanceof Node && !el.contains(e.target)) {
         setOpen(false)
+        setFocusedValue(null)
       }
     }
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false)
+      switch (e.key) {
+        case "Escape": {
+          setOpen(false)
+          setFocusedValue(null)
+          // Return focus to trigger
+          const trigger = document.getElementById(triggerId)
+          trigger?.focus()
+          break
+        }
+      }
     }
 
     const controller = new AbortController()
@@ -102,7 +158,8 @@ const SelectRoot: FC<PropsWithChildren<SelectProps>> = ({
     document.addEventListener("touchstart", onPointerDown, { passive: true, signal })
     document.addEventListener("keydown", onKeyDown, { signal })
     return () => controller.abort()
-  }, [open])
+  }, [open, triggerId, setOpen, setFocusedValue])
+
 
   const ctx = useMemo<SelectContextValue>(
     () => ({
@@ -118,8 +175,13 @@ const SelectRoot: FC<PropsWithChildren<SelectProps>> = ({
       registerOption,
       unregisterOption,
       getOptionLabel,
+      getOptionElement,
+      focusedValue,
+      setFocusedValue,
       triggerId,
       listboxId,
+      getAllOptionValues,
+      labelsVersion,
     }),
     [
       name,
@@ -133,8 +195,14 @@ const SelectRoot: FC<PropsWithChildren<SelectProps>> = ({
       registerOption,
       unregisterOption,
       getOptionLabel,
+      getOptionElement,
+      getAllOptionValues,
+      focusedValue,
+      setFocusedValue,
+      setOpen,
       triggerId,
       listboxId,
+      labelsVersion,
     ]
   )
 
@@ -179,4 +247,3 @@ export { SelectGroup } from "./Group"
 export type {
   SelectProps,
 } from "./types"
-

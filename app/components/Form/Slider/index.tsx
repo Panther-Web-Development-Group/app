@@ -57,16 +57,14 @@ export const Slider: FC<SliderProps> = ({
       {/* Track */}
       <div
         className={cn(
-          "absolute rounded-full border border-(--pw-border) bg-background/10 shadow-[0_10px_30px_var(--pw-shadow)]",
-          isVertical ? "left-1/2 top-2 h-[calc(100%-1rem)] w-2 -translate-x-1/2" : "left-2 top-1/2 h-2 w-[calc(100%-1rem)] -translate-y-1/2"
+          "absolute rounded-full border border-(--pw-border) bg-background/15",
+          isVertical ? "left-1/2 top-2 h-[calc(100%-1rem)] w-2 -translate-x-1/2" : "left-2 top-1/2 h-2.5 w-[calc(100%-1rem)] -translate-y-1/2"
         )}
         aria-hidden
       >
+        {/* Fill */}
         <div
-          className={cn(
-            "absolute rounded-full bg-accent/30",
-            "shadow-[0_0_0_1px_var(--pw-border),0_0_40px_color-mix(in_oklab,var(--pw-info)_25%,transparent)]"
-          )}
+          className="absolute inset-0 rounded-full bg-accent/80 transition-[width,height] duration-150 ease-out"
           style={
             isVertical
               ? { bottom: 0, height: `${p}%`, left: 0, right: 0 }
@@ -79,16 +77,16 @@ export const Slider: FC<SliderProps> = ({
       <div
         aria-hidden
         className={cn(
-          "absolute h-5 w-5 rounded-full border border-(--pw-border) bg-foreground/80",
-          "shadow-[0_10px_30px_var(--pw-shadow)]",
-          "transition-transform",
+          "absolute h-5 w-5 rounded-full border-2 border-(--pw-border) bg-background shadow-sm",
+          "transition-[left,bottom] duration-150 ease-out",
+          "peer-hover:scale-110 peer-active:scale-105",
           isVertical ? "left-1/2 -translate-x-1/2" : "top-1/2 -translate-y-1/2",
           disabled ? "opacity-60" : ""
         )}
         style={
           isVertical
-            ? { bottom: `calc(${p}% + 0.5rem)`, transform: "translateX(-50%) translateY(50%)" }
-            : { left: `calc(${p}% + 0.5rem)`, transform: "translateX(-50%) translateY(-50%)" }
+            ? { bottom: `calc(${p}%) - 0.5rem` }
+            : { left: `calc(${p}%) - 0.5rem` }
         }
       />
 
@@ -149,7 +147,8 @@ export const RangeSlider: FC<RangeSliderProps> = ({
   const pMin = useMemo(() => percent(minVal, min, max), [max, min, minVal])
   const pMax = useMemo(() => percent(maxVal, min, max), [max, min, maxVal])
 
-  const [activeThumb, setActiveThumb] = useState<"min" | "max" | null>(null)
+  /** Clip-path split: min input only receives clicks left of mid%, max only right of mid%. */
+  const mid = (pMin + pMax) / 2
 
   const nameMin = nameMinProp ?? (name ? `${name}_min` : undefined)
   const nameMax = nameMaxProp ?? (name ? `${name}_max` : undefined)
@@ -167,7 +166,7 @@ export const RangeSlider: FC<RangeSliderProps> = ({
       const nextMin = clamp(Number(e.target.value), min, maxVal)
       emit([nextMin, maxVal])
     },
-    [emit, maxVal, min, minVal, max]
+    [emit, maxVal, min]
   )
 
   const onMaxChange = useCallback(
@@ -175,13 +174,13 @@ export const RangeSlider: FC<RangeSliderProps> = ({
       const nextMax = clamp(Number(e.target.value), minVal, max)
       emit([minVal, nextMax])
     },
-    [emit, max, min, minVal, maxVal]
+    [emit, max, minVal]
   )
 
   return (
     <div
       {...divProps}
-      className={cn("relative h-10 w-full select-none", className)}
+      className={cn("relative h-10 w-full select-none group/range", className)}
     >
       {/* Hidden inputs for native form submission */}
       {nameMin ? <input type="hidden" name={nameMin} value={String(minVal)} /> : null}
@@ -189,14 +188,11 @@ export const RangeSlider: FC<RangeSliderProps> = ({
 
       {/* Track */}
       <div
-        className="absolute left-2 top-1/2 h-2 w-[calc(100%-1rem)] -translate-y-1/2 rounded-full border border-(--pw-border) bg-background/10 shadow-[0_10px_30px_var(--pw-shadow)]"
+        className="absolute left-2 top-1/2 h-2.5 w-[calc(100%-1rem)] -translate-y-1/2 rounded-full border border-(--pw-border) bg-background/15"
         aria-hidden
       >
         <div
-          className={cn(
-            "absolute top-0 bottom-0 rounded-full bg-accent/30",
-            "shadow-[0_0_0_1px_var(--pw-border),0_0_40px_color-mix(in_oklab,var(--pw-info)_25%,transparent)]"
-          )}
+          className="absolute inset-y-0 left-0 rounded-full bg-accent/80 transition-[width] duration-150 ease-out"
           style={{ left: `${pMin}%`, width: `${Math.max(0, pMax - pMin)}%` }}
         />
       </div>
@@ -205,21 +201,21 @@ export const RangeSlider: FC<RangeSliderProps> = ({
       <div
         aria-hidden
         className={cn(
-          "absolute top-1/2 h-5 w-5 -translate-y-1/2 rounded-full border border-(--pw-border) bg-foreground/80 shadow-[0_10px_30px_var(--pw-shadow)]",
+          "absolute top-1/2 z-10 h-5 w-5 -translate-y-1/2 rounded-full border-2 border-(--pw-border) bg-background shadow-sm transition-[left] duration-150 ease-out",
           disabled ? "opacity-60" : ""
         )}
-        style={{ left: `calc(${pMin}% + 0.5rem)`, transform: "translateX(-50%) translateY(-50%)" }}
+        style={{ left: `calc(${pMin}% + 0.5rem)` }}
       />
       <div
         aria-hidden
         className={cn(
-          "absolute top-1/2 h-5 w-5 -translate-y-1/2 rounded-full border border-(--pw-border) bg-foreground/80 shadow-[0_10px_30px_var(--pw-shadow)]",
+          "absolute top-1/2 z-10 h-5 w-5 -translate-y-1/2 rounded-full border-2 border-(--pw-border) bg-background shadow-sm transition-[left] duration-150 ease-out",
           disabled ? "opacity-60" : ""
         )}
-        style={{ left: `calc(${pMax}% + 0.5rem)`, transform: "translateX(-50%) translateY(-50%)" }}
+        style={{ left: `calc(${pMax}% + 0.5rem)` }}
       />
 
-      {/* Range inputs (invisible but interactive) */}
+      {/* Full-width range inputs; clip-path restricts which half receives clicks so value maps correctly */}
       <input
         type="range"
         min={min}
@@ -227,12 +223,9 @@ export const RangeSlider: FC<RangeSliderProps> = ({
         step={step}
         value={minVal}
         disabled={disabled}
-        onPointerDown={() => setActiveThumb("min")}
         onChange={onMinChange}
-        className={cn(
-          "peer absolute inset-0 cursor-pointer opacity-0",
-          activeThumb === "min" ? "z-20" : "z-10"
-        )}
+        style={{ clipPath: `inset(0 ${100 - mid}% 0 0)` }}
+        className="peer/min absolute inset-0 z-0 h-full w-full cursor-pointer opacity-0 focus-visible:outline-none"
         aria-label="Minimum"
       />
       <input
@@ -242,21 +235,18 @@ export const RangeSlider: FC<RangeSliderProps> = ({
         step={step}
         value={maxVal}
         disabled={disabled}
-        onPointerDown={() => setActiveThumb("max")}
         onChange={onMaxChange}
-        className={cn(
-          "peer absolute inset-0 cursor-pointer opacity-0",
-          activeThumb === "max" ? "z-20" : "z-10"
-        )}
+        style={{ clipPath: `inset(0 0 0 ${mid}%)` }}
+        className="peer/max absolute inset-0 z-0 h-full w-full cursor-pointer opacity-0 focus-visible:outline-none"
         aria-label="Maximum"
       />
 
-      {/* Focus ring */}
+      {/* Focus ring when either input is focused */}
       <div
         aria-hidden
         className={cn(
           "pointer-events-none absolute inset-0 rounded-lg",
-          "peer-focus-visible:ring-2 peer-focus-visible:ring-(--pw-ring)"
+          "group-focus-within/range:ring-2 group-focus-within/range:ring-(--pw-ring)"
         )}
       />
     </div>

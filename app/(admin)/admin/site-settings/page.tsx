@@ -4,18 +4,27 @@ import { Button } from "@/app/components/Button"
 import { InputGroup } from "@/app/components/Form/InputGroup"
 import { TextAreaGroup } from "@/app/components/Form/TextAreaGroup"
 import { Checkbox } from "@/app/components/Form/Checkbox"
-import { Tags } from "@/app/components/Form/Tags"
-import type { Json } from "@/lib/supabase/types"
-import { SeoTargetPicker } from "./SeoTargetPicker"
 import { Select, SelectContent, SelectOption, SelectTrigger } from "@/app/components/Form/Select"
+import type { Json } from "@/lib/supabase/types"
+// import { GlobalsTabs } from "./GlobalsTabs"
+import { BrandingSection } from "./sections/BrandingSection"
+import { SeoSection } from "./sections/SeoSection"
+import { SiteBehaviorSection } from "./sections/SiteBehaviorSection"
+import { SettingsSection } from "./sections/SettingsSection"
+import { Link } from "@/app/components/Link"
 
 type SiteBrandingRow = {
   id: string
   owner_id: string
   header_logo: string | null
   header_logo_alt: string | null
+  header_logo_text: string | null
   footer_logo: string | null
   footer_logo_alt: string | null
+  footer_logo_text: string | null
+  sidebar_logo_media_id: string | null
+  sidebar_logo_text: string | null
+  theme_color: string | null
   is_active: boolean
   metadata: Json
   created_at: string
@@ -44,6 +53,8 @@ type SeoMetadataRow = {
   canonical_url: string | null
   robots: string | null
   structured_data: Json | null
+  google_analytics_id: string | null
+  facebook_pixel_id: string | null
   created_at: string
   updated_at: string
 }
@@ -77,16 +88,6 @@ function parseTypedValue(valueType: SiteSettingRow["value_type"], raw: string): 
   return trimmed
 }
 
-function parseKeywords(raw: string) {
-  const trimmed = raw.trim()
-  if (!trimmed) return null
-  const parts = trimmed
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean)
-  return parts.length ? parts : null
-}
-
 export default async function AdminSiteSettingsPage() {
   const supabase = await createClient()
   const {
@@ -102,10 +103,20 @@ export default async function AdminSiteSettingsPage() {
     } = await supabase.auth.getUser()
     if (!user) return
 
+    // Get existing branding to preserve sidebar fields
+    const { data: existing } = await supabase
+      .from("site_branding")
+      .select("sidebar_logo_media_id, sidebar_logo_text")
+      .eq("owner_id", user.id)
+      .maybeSingle()
+
     const headerLogo = String(formData.get("header_logo") ?? "").trim() || null
     const headerAlt = String(formData.get("header_logo_alt") ?? "").trim() || null
+    const headerLogoText = String(formData.get("header_logo_text") ?? "").trim() || null
     const footerLogo = String(formData.get("footer_logo") ?? "").trim() || null
     const footerAlt = String(formData.get("footer_logo_alt") ?? "").trim() || null
+    const footerLogoText = String(formData.get("footer_logo_text") ?? "").trim() || null
+    const themeColor = String(formData.get("theme_color") ?? "").trim() || null
     const isActive = formData.get("is_active") === "on"
     const metadataRaw = String(formData.get("metadata") ?? "").trim()
 
@@ -126,8 +137,13 @@ export default async function AdminSiteSettingsPage() {
           owner_id: user.id,
           header_logo: headerLogo,
           header_logo_alt: headerAlt,
+          header_logo_text: headerLogoText,
           footer_logo: footerLogo,
           footer_logo_alt: footerAlt,
+          footer_logo_text: footerLogoText,
+          sidebar_logo_media_id: existing?.sidebar_logo_media_id || null,
+          sidebar_logo_text: existing?.sidebar_logo_text || null,
+          theme_color: themeColor,
           is_active: isActive,
           metadata,
         },
@@ -153,7 +169,8 @@ export default async function AdminSiteSettingsPage() {
 
     const targetType = String(formData.get("target_type") ?? "")
     const targetId = String(formData.get("target_id") ?? "").trim()
-    if (!targetId || (targetType !== "page" && targetType !== "post")) return
+    const isGlobal = targetType === "global"
+    if (!isGlobal && (!targetId || (targetType !== "page" && targetType !== "post"))) return
 
     const metaKeywordsRaw = formData.getAll("meta_keywords")
     const metaKeywords = Array.isArray(metaKeywordsRaw) && metaKeywordsRaw.length > 0
@@ -162,8 +179,8 @@ export default async function AdminSiteSettingsPage() {
 
     const payload = {
       owner_id: user.id,
-      post_id: targetType === "post" ? targetId : null,
-      page_id: targetType === "page" ? targetId : null,
+      post_id: isGlobal ? null : (targetType === "post" ? targetId : null),
+      page_id: isGlobal ? null : (targetType === "page" ? targetId : null),
       meta_title: String(formData.get("meta_title") ?? "").trim() || null,
       meta_description: String(formData.get("meta_description") ?? "").trim() || null,
       meta_keywords: metaKeywords,
@@ -180,6 +197,8 @@ export default async function AdminSiteSettingsPage() {
       twitter_creator: String(formData.get("twitter_creator") ?? "").trim() || null,
       canonical_url: String(formData.get("canonical_url") ?? "").trim() || null,
       robots: String(formData.get("robots") ?? "").trim() || null,
+      google_analytics_id: String(formData.get("google_analytics_id") ?? "").trim() || null,
+      facebook_pixel_id: String(formData.get("facebook_pixel_id") ?? "").trim() || null,
       structured_data: null as Json | null,
     }
 
@@ -193,8 +212,9 @@ export default async function AdminSiteSettingsPage() {
       }
     }
 
-    const existing =
-      targetType === "page"
+    const existing = isGlobal
+      ? await supabase.from("seo_metadata").select("id").eq("owner_id", user.id).is("post_id", null).is("page_id", null).maybeSingle()
+      : targetType === "page"
         ? await supabase.from("seo_metadata").select("id").eq("page_id", targetId).maybeSingle()
         : await supabase.from("seo_metadata").select("id").eq("post_id", targetId).maybeSingle()
 
@@ -299,6 +319,117 @@ export default async function AdminSiteSettingsPage() {
     revalidatePath("/admin/site-settings")
   }
 
+  async function upsertHeaderConfig(formData: FormData) {
+    "use server"
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const placeholderText = String(formData.get("placeholder_text") ?? "").trim() || null
+    const searchUrl = String(formData.get("search_url") ?? "").trim() || null
+    const { error } = await supabase.from("header_config").upsert(
+      { owner_id: user.id, placeholder_text: placeholderText, search_url: searchUrl },
+      { onConflict: "owner_id" }
+    )
+    if (error) console.error("Error saving header config:", error)
+    else revalidatePath("/admin/site-settings")
+  }
+
+  async function upsertFooterConfig(formData: FormData) {
+    "use server"
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const contactEmail = String(formData.get("contact_email") ?? "").trim() || null
+    const contactPhone = String(formData.get("contact_phone") ?? "").trim() || null
+    const contactWebsite = String(formData.get("contact_website") ?? "").trim() || null
+    const copyrightText = String(formData.get("copyright_text") ?? "").trim() || null
+    const { error } = await supabase.from("footer_config").upsert(
+      { owner_id: user.id, contact_email: contactEmail, contact_phone: contactPhone, contact_website: contactWebsite, copyright_text: copyrightText },
+      { onConflict: "owner_id" }
+    )
+    if (error) console.error("Error saving footer config:", error)
+    else revalidatePath("/admin/site-settings")
+  }
+
+  async function upsertHomepageConfig(formData: FormData) {
+    "use server"
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const homepageTitle = String(formData.get("homepage_title") ?? "").trim() || null
+    const heroType = (String(formData.get("hero_type") ?? "text") as "text" | "image" | "slideshow") || "text"
+    const welcomeText = String(formData.get("welcome_text") ?? "").trim() || null
+    const foundingDateRaw = String(formData.get("founding_date") ?? "").trim() || null
+    const memberCountRaw = String(formData.get("member_count") ?? "").trim()
+    const githubReposRaw = String(formData.get("github_repos_count") ?? "").trim()
+    const upcomingLimit = parseInt(String(formData.get("upcoming_events_limit") ?? ""), 10)
+    const announcementsLimit = parseInt(String(formData.get("announcements_limit") ?? ""), 10)
+    const featuredLimit = parseInt(String(formData.get("featured_posts_limit") ?? ""), 10)
+    let heroConfig: Json = {}
+    let aboutContent: Json = {}
+    let technologiesUsed: string[] = []
+    let additionalSections: Json = []
+    try {
+      const h = String(formData.get("hero_config") ?? "{}").trim()
+      if (h) heroConfig = JSON.parse(h) as Json
+    } catch { /* ignore */ }
+    try {
+      const a = String(formData.get("about_content") ?? "{}").trim()
+      if (a) aboutContent = JSON.parse(a) as Json
+    } catch { /* ignore */ }
+    try {
+      const t = String(formData.get("technologies_used") ?? "").trim()
+      if (t) technologiesUsed = t.split(",").map((s) => s.trim()).filter(Boolean)
+    } catch { /* ignore */ }
+    try {
+      const s = String(formData.get("additional_sections") ?? "[]").trim()
+      if (s) additionalSections = JSON.parse(s) as Json
+    } catch { /* ignore */ }
+    const { error } = await supabase.from("homepage_config").upsert(
+      {
+        owner_id: user.id,
+        homepage_title: homepageTitle,
+        hero_type: heroType,
+        hero_config: heroConfig,
+        welcome_text: welcomeText,
+        about_content: aboutContent,
+        technologies_used: technologiesUsed.length ? technologiesUsed : null,
+        founding_date: foundingDateRaw || null,
+        member_count: memberCountRaw === "" ? null : parseInt(memberCountRaw, 10),
+        github_repos_count: githubReposRaw === "" ? null : parseInt(githubReposRaw, 10),
+        upcoming_events_limit: Number.isNaN(upcomingLimit) ? null : upcomingLimit,
+        announcements_limit: Number.isNaN(announcementsLimit) ? null : announcementsLimit,
+        featured_posts_limit: Number.isNaN(featuredLimit) ? null : featuredLimit,
+        additional_sections: additionalSections,
+      },
+      { onConflict: "owner_id" }
+    )
+    if (error) console.error("Error saving homepage config:", error)
+    else revalidatePath("/admin/site-settings")
+  }
+
+  async function upsertReservedSettings(formData: FormData) {
+    "use server"
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const keys = [
+      { key: "timezone", value: String(formData.get("timezone") ?? "UTC").trim() || "UTC", value_type: "string" as const },
+      { key: "maintenance_mode", value: formData.get("maintenance_mode") === "on", value_type: "boolean" as const },
+      { key: "maintenance_message", value: String(formData.get("maintenance_message") ?? "").trim(), value_type: "string" as const },
+      { key: "cookie_consent_message", value: String(formData.get("cookie_consent_message") ?? "").trim(), value_type: "string" as const },
+      { key: "cookie_consent_accept_text", value: String(formData.get("cookie_consent_accept_text") ?? "Accept").trim() || "Accept", value_type: "string" as const },
+      { key: "cookie_consent_decline_text", value: String(formData.get("cookie_consent_decline_text") ?? "Decline").trim() || "Decline", value_type: "string" as const },
+    ]
+    for (const { key, value, value_type } of keys) {
+      await supabase.from("site_settings").upsert(
+        { key, value, value_type, category: "general", is_public: true, updated_by: user.id },
+        { onConflict: "key" }
+      )
+    }
+    revalidatePath("/admin/site-settings")
+  }
+
   const { data: settings } = user
     ? await supabase
         .from("site_settings")
@@ -310,7 +441,7 @@ export default async function AdminSiteSettingsPage() {
   const { data: branding } = user
     ? await supabase
         .from("site_branding")
-        .select("id, owner_id, header_logo, header_logo_alt, footer_logo, footer_logo_alt, is_active, metadata, created_at, updated_at")
+        .select("id, owner_id, header_logo, header_logo_alt, header_logo_text, footer_logo, footer_logo_alt, footer_logo_text, sidebar_logo_media_id, sidebar_logo_text, theme_color, is_active, metadata, created_at, updated_at")
         .eq("owner_id", user.id)
         .maybeSingle()
     : { data: null as SiteBrandingRow | null }
@@ -322,7 +453,7 @@ export default async function AdminSiteSettingsPage() {
         supabase
           .from("seo_metadata")
           .select(
-            "id, owner_id, post_id, page_id, meta_title, meta_description, meta_keywords, og_title, og_description, og_image, og_type, og_url, twitter_card, twitter_title, twitter_description, twitter_image, twitter_site, twitter_creator, canonical_url, robots, structured_data, created_at, updated_at"
+            "id, owner_id, post_id, page_id, meta_title, meta_description, meta_keywords, og_title, og_description, og_image, og_type, og_url, twitter_card, twitter_title, twitter_description, twitter_image, twitter_site, twitter_creator, canonical_url, robots, structured_data, google_analytics_id, facebook_pixel_id, created_at, updated_at"
           )
           .eq("owner_id", user.id)
           .order("updated_at", { ascending: false }),
@@ -331,6 +462,7 @@ export default async function AdminSiteSettingsPage() {
 
   const pageById = new Map((pages ?? []).map((p) => [p.id, p]))
   const postById = new Map((posts ?? []).map((p) => [p.id, p]))
+  const globalSeo = (seo ?? []).find((r) => r.post_id === null && r.page_id === null) ?? null
 
   return (
     <div className="space-y-6">
@@ -339,229 +471,79 @@ export default async function AdminSiteSettingsPage() {
         <p className="mt-2 text-foreground/75">Configure global site settings</p>
       </div>
 
-      <div className="rounded-lg border border-(--pw-border) bg-secondary/20 p-6">
-        <h3 className="text-lg font-semibold text-foreground">Site Branding</h3>
-        <p className="mt-1 text-sm text-foreground/70">Header/footer logos and branding metadata.</p>
+      <SettingsSection title="Globals" description="Header, footer, sidebar, and homepage configuration.">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Link
+            href="/admin/site-settings/header"
+            className="flex flex-col rounded-lg border border-(--pw-border) bg-secondary/20 p-5 transition-colors hover:bg-secondary/30"
+          >
+            <span className="font-semibold text-foreground">Header</span>
+            <span className="mt-1 text-sm text-foreground/70">Search placeholder and search URL</span>
+          </Link>
+          <Link
+            href="/admin/site-settings/footer"
+            className="flex flex-col rounded-lg border border-(--pw-border) bg-secondary/20 p-5 transition-colors hover:bg-secondary/30"
+          >
+            <span className="font-semibold text-foreground">Footer</span>
+            <span className="mt-1 text-sm text-foreground/70">Contact info and copyright</span>
+          </Link>
+          <Link
+            href="/admin/site-settings/sidebar"
+            className="flex flex-col rounded-lg border border-(--pw-border) bg-secondary/20 p-5 transition-colors hover:bg-secondary/30"
+          >
+            <span className="font-semibold text-foreground">Side Branding</span>
+            <span className="mt-1 text-sm text-foreground/70">Sidebar logo and logo text</span>
+          </Link>
+          <Link
+            href="/admin/site-settings/homepage"
+            className="flex flex-col rounded-lg border border-(--pw-border) bg-secondary/20 p-5 transition-colors hover:bg-secondary/30"
+          >
+            <span className="font-semibold text-foreground">Homepage</span>
+            <span className="mt-1 text-sm text-foreground/70">Hero, about, and section limits</span>
+          </Link>
+        </div>
+      </SettingsSection>
+      <BrandingSection data={branding} action={upsertBranding} />
+      <SeoSection
+        pages={pages ?? []}
+        posts={posts ?? []}
+        seo={seo ?? []}
+        globalSeo={globalSeo}
+        pageById={pageById}
+        postById={postById}
+        onUpsert={upsertSeo}
+        onDelete={deleteSeo}
+      />
+      <SiteBehaviorSection
+        timezone={(() => {
+          const byKey = new Map((settings ?? []).map((s) => [s.key, s]))
+          const v = byKey.get("timezone")?.value
+          return typeof v === "string" ? v : "UTC"
+        })()}
+        maintenanceMode={(() => {
+          const v = (settings ?? []).find((s) => s.key === "maintenance_mode")?.value
+          return typeof v === "boolean" ? v : false
+        })()}
+        maintenanceMessage={(() => {
+          const v = (settings ?? []).find((s) => s.key === "maintenance_message")?.value
+          return typeof v === "string" ? v : ""
+        })()}
+        cookieMessage={(() => {
+          const v = (settings ?? []).find((s) => s.key === "cookie_consent_message")?.value
+          return typeof v === "string" ? v : ""
+        })()}
+        cookieAccept={(() => {
+          const v = (settings ?? []).find((s) => s.key === "cookie_consent_accept_text")?.value
+          return typeof v === "string" ? v : "Accept"
+        })()}
+        cookieDecline={(() => {
+          const v = (settings ?? []).find((s) => s.key === "cookie_consent_decline_text")?.value
+          return typeof v === "string" ? v : "Decline"
+        })()}
+        action={upsertReservedSettings}
+      />
 
-        <form action={upsertBranding} className="mt-4 grid gap-4 sm:grid-cols-2">
-          <InputGroup
-            className="sm:col-span-2"
-            name="header_logo"
-            defaultValue={branding?.header_logo ?? ""}
-            placeholder="https://… or /storage/path"
-            label="Header logo URL"
-          />
-          <InputGroup
-            className="sm:col-span-2"
-            name="header_logo_alt"
-            defaultValue={branding?.header_logo_alt ?? ""}
-            label="Header logo alt (optional)"
-          />
-          <InputGroup
-            className="sm:col-span-2"
-            name="footer_logo"
-            defaultValue={branding?.footer_logo ?? ""}
-            placeholder="https://… or /storage/path"
-            label="Footer logo URL"
-          />
-          <InputGroup
-            className="sm:col-span-2"
-            name="footer_logo_alt"
-            defaultValue={branding?.footer_logo_alt ?? ""}
-            label="Footer logo alt (optional)"
-          />
-          <TextAreaGroup
-            className="sm:col-span-2"
-            name="metadata"
-            rows={3}
-            defaultValue={branding?.metadata ? JSON.stringify(branding.metadata) : ""}
-            placeholder='{"favicon":"/favicon.ico"}'
-            label="Metadata (optional JSON)"
-            descriptionType="tooltip"
-            description="Optional JSON blob for future site metadata."
-          />
-          <div className="sm:col-span-2 flex items-center gap-4">
-            <Checkbox
-              name="is_active"
-              label="Active"
-              defaultChecked={branding?.is_active ?? true}
-            />
-          </div>
-
-          <div className="sm:col-span-2">
-            <Button
-              type="submit"
-              className="inline-flex h-10 items-center rounded-lg bg-accent px-4 text-sm font-semibold text-accent-foreground transition-colors hover:opacity-90"
-              variant="ghost"
-            >
-              Save Branding
-            </Button>
-          </div>
-        </form>
-      </div>
-
-      <div className="rounded-lg border border-(--pw-border) bg-secondary/20 p-6">
-        <h3 className="text-lg font-semibold text-foreground">SEO Metadata</h3>
-        <p className="mt-1 text-sm text-foreground/70">Attach SEO metadata to a page or post.</p>
-
-        <form action={upsertSeo} className="mt-4 grid gap-4 sm:grid-cols-2">
-          <SeoTargetPicker pages={pages ?? []} posts={posts ?? []} className="sm:col-span-2" />
-
-          <div className="sm:col-span-2">
-            <InputGroup
-              name="meta_title"
-              placeholder="(max ~60 chars)"
-              label="Meta title"
-              descriptionType="tooltip"
-              description="Recommended max ~60 characters."
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <TextAreaGroup
-              name="meta_description"
-              rows={3}
-              placeholder="(max ~160 chars)"
-              label="Meta description"
-              descriptionType="tooltip"
-              description="Recommended max ~160 characters."
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <div className="space-y-1.5">
-              <label className="block text-sm font-semibold text-foreground/80">Keywords</label>
-              <Tags
-                name="meta_keywords"
-                placeholder="Add keyword…"
-                allowDuplicates={false}
-              />
-            </div>
-          </div>
-
-          <div>
-            <InputGroup name="og_type" placeholder="website" label="OG type" />
-          </div>
-          <div>
-            <label className="text-sm font-semibold text-foreground/80">Twitter card</label>
-            <Select name="twitter_card" defaultValue="summary_large_image">
-              <SelectTrigger className="mt-1" />
-              <SelectContent>
-                <SelectOption value="summary">summary</SelectOption>
-                <SelectOption value="summary_large_image">summary_large_image</SelectOption>
-                <SelectOption value="app">app</SelectOption>
-                <SelectOption value="player">player</SelectOption>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="sm:col-span-2">
-            <InputGroup name="og_image" placeholder="https://…" label="OG image URL" />
-          </div>
-          <div className="sm:col-span-2">
-            <InputGroup name="twitter_image" placeholder="https://…" label="Twitter image URL" />
-          </div>
-          <div className="sm:col-span-2">
-            <InputGroup
-              name="canonical_url"
-              placeholder="https://example.com/path"
-              label="Canonical URL"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <InputGroup name="robots" placeholder="index,follow" label="Robots" />
-          </div>
-          <div className="sm:col-span-2">
-            <TextAreaGroup
-              name="structured_data"
-              rows={4}
-              placeholder='{"@context":"https://schema.org","@type":"WebSite","name":"…"}'
-              label="Structured data (JSON-LD)"
-            />
-          </div>
-
-          <div className="sm:col-span-2">
-            <Button
-              type="submit"
-              className="inline-flex h-10 items-center rounded-lg bg-accent px-4 text-sm font-semibold text-accent-foreground transition-colors hover:opacity-90"
-              variant="ghost"
-            >
-              Save SEO Metadata
-            </Button>
-          </div>
-        </form>
-
-        {!seo || seo.length === 0 ? (
-          <div className="mt-6 rounded-lg border border-(--pw-border) bg-background/5 p-6">
-            <p className="text-foreground/75">No SEO metadata entries yet.</p>
-          </div>
-        ) : (
-          <div className="mt-6 overflow-hidden rounded-lg border border-(--pw-border) bg-secondary/20">
-            <table className="min-w-full divide-y divide-(--pw-border)">
-              <thead className="bg-secondary/30">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-foreground/70">
-                    Target
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-foreground/70">
-                    Meta title
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-foreground/70">
-                    Updated
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-foreground/70">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-(--pw-border)">
-                {(seo ?? []).map((row) => {
-                  const target =
-                    row.page_id && pageById.get(row.page_id)
-                      ? `Page: ${pageById.get(row.page_id)!.title}`
-                      : row.post_id && postById.get(row.post_id)
-                        ? `Post: ${postById.get(row.post_id)!.title}`
-                        : row.page_id
-                          ? `Page: ${row.page_id}`
-                          : row.post_id
-                            ? `Post: ${row.post_id}`
-                            : "—"
-
-                  return (
-                    <tr key={row.id} className="transition-colors hover:bg-secondary/30">
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-semibold text-foreground">{target}</div>
-                        <div className="mt-1 text-xs text-foreground/70">
-                          {row.page_id ? "page" : "post"} •{" "}
-                          <code className="rounded border border-(--pw-border) bg-background/10 px-2 py-0.5">
-                            {row.page_id ?? row.post_id}
-                          </code>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-foreground/80">{row.meta_title ?? "—"}</td>
-                      <td className="px-6 py-4 text-sm text-foreground/70">
-                        {new Date(row.updated_at).toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 text-right text-sm font-medium">
-                        <form action={deleteSeo}>
-                          <input type="hidden" name="id" value={row.id} />
-                          <Button
-                            type="submit"
-                            className="rounded-lg border border-(--pw-border) bg-background/10 px-3 py-2 text-xs font-semibold text-foreground/80 hover:bg-background/20"
-                            variant="ghost"
-                          >
-                            Delete
-                          </Button>
-                        </form>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      <div className="rounded-lg border border-(--pw-border) bg-secondary/20 p-6">
-        <h3 className="text-lg font-semibold text-foreground">Create / Update Setting</h3>
+      <SettingsSection title="Create / Update Setting" description="Saving an existing key will update it.">
         <p className="mt-1 text-sm text-foreground/70">
           Saving an existing key will update it.
         </p>
@@ -618,7 +600,7 @@ export default async function AdminSiteSettingsPage() {
             </Button>
           </div>
         </form>
-      </div>
+      </SettingsSection>
 
       {!settings || settings.length === 0 ? (
         <div className="rounded-lg border border-(--pw-border) bg-secondary/20 p-12 text-center">

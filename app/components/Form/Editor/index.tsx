@@ -9,6 +9,25 @@ import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin"
 import { ListPlugin } from "@lexical/react/LexicalListPlugin"
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary"
 import { EditorRefPlugin } from "@lexical/react/LexicalEditorRefPlugin"
+import { LexicalNestedComposer } from "@lexical/react/LexicalNestedComposer"
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
+import { useLexicalNodeSelection } from "@lexical/react/useLexicalNodeSelection"
+import { mergeRegister } from "@lexical/utils"
+import {
+  $getNodeByKey,
+  $getSelection,
+  $isNodeSelection,
+  CLICK_COMMAND,
+  COMMAND_PRIORITY_LOW,
+  KEY_BACKSPACE_COMMAND,
+  KEY_DELETE_COMMAND,
+} from "lexical"
+import { ImageNode, CardNode, VideoNode } from "./nodes"
+import { DecoratorNodePlugin } from "./plugins/DecoratorNodePlugin"
+import { MarkdownShortcutsPlugin } from "./plugins/MarkdownShortcutsPlugin"
+import { CodeHighlightPlugin } from "./plugins/CodeHighlightPlugin"
+import { BlockFloatingMenu } from "./components/BlockFloatingMenu"
+import { BlockSelectionProvider } from "./components/BlockSelectionContext"
 import { $getRoot, $insertNodes, EditorState, LexicalEditor } from "lexical"
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react"
 import { Toolbar } from "./Toolbar"
@@ -21,6 +40,7 @@ import { Label } from "../Label"
 import { Tooltip } from "@/app/components/Tooltip"
 import { Button } from "@/app/components/Button"
 import { InfoIcon } from "lucide-react"
+import { InitialConfigType } from "@lexical/react/LexicalComposer"
 
 interface EditorProps {
   initialContent?: string | null
@@ -212,7 +232,7 @@ export function Editor({
       ...editorConfig,
       editorState: initialEditorState,
       namespace,
-    }
+    } as InitialConfigType
   }, [initialEditorState, namespace])
 
   return (
@@ -256,42 +276,60 @@ export function Editor({
         onBlurCapture={handleBlurCapture}
       >
         <LexicalComposer initialConfig={initialConfig}>
-          <div
-            className={cn(
-              "editor-container w-full max-w-full overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950",
-              editorContainerClassName,
-            )}
-          >
-            <Toolbar />
-            <div className="editor-inner relative">
-              <RichTextPlugin
-                contentEditable={
-                  <ContentEditable
-                    id={inputId}
-                    aria-required={required ? true : undefined}
-                    aria-describedby={showInlineDescription ? descriptionId : undefined}
-                    className={cn(
-                      "editor-input px-4 py-3 outline-none prose prose-zinc dark:prose-invert max-w-none",
-                      contentMinHeightClassName,
-                      contentClassName,
-                    )}
-                  />
-                }
-                placeholder={
-                  <div className="editor-placeholder absolute top-3 left-4 pointer-events-none text-zinc-400">
-                    {placeholder || "Start typing..."}
-                  </div>
-                }
-                ErrorBoundary={LexicalErrorBoundary}
-              />
-              <OnChangePlugin onChange={onChange} />
-              <HistoryPlugin />
-              {autoFocus ? <AutoFocusPlugin /> : null}
-              <LinkPlugin />
-              <ListPlugin />
-              <EditorRefPlugin editorRef={editorRef} />
+          <BlockSelectionProvider>
+            <div
+              className={cn(
+                "editor-container w-full max-w-full rounded-sm",
+                "border border-foreground/10 dark:border-foreground/20",
+                "bg-background shadow-sm",
+                "overflow-hidden",
+                editorContainerClassName,
+              )}
+            >
+              <Toolbar />
+              <div className="editor-inner relative">
+                <RichTextPlugin
+                  contentEditable={
+                    <ContentEditable
+                      id={inputId}
+                      aria-required={required ? true : undefined}
+                      aria-describedby={showInlineDescription ? descriptionId : undefined}
+                      className={cn(
+                        "editor-input px-4 py-3 outline-none",
+                        "prose prose-zinc dark:prose-invert max-w-none",
+                        "prose-headings:font-semibold prose-headings:text-foreground",
+                        "prose-p:text-foreground/90 prose-p:leading-relaxed",
+                        "prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline",
+                        "prose-code:text-foreground prose-code:bg-foreground/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm",
+                        "prose-pre:bg-foreground/5 prose-pre:border prose-pre:border-foreground/10",
+                        "prose-ul:list-disc prose-ol:list-decimal",
+                        "prose-blockquote:border-l-4 prose-blockquote:border-foreground/20 prose-blockquote:pl-4 prose-blockquote:italic",
+                        "focus-visible:outline-none",
+                        contentMinHeightClassName,
+                        contentClassName,
+                      )}
+                    />
+                  }
+                  placeholder={
+                    <div className="editor-placeholder absolute top-3 left-4 pointer-events-none text-foreground/40 select-none">
+                      {placeholder || "Start typing..."}
+                    </div>
+                  }
+                  ErrorBoundary={LexicalErrorBoundary}
+                />
+                <OnChangePlugin onChange={onChange} />
+                <HistoryPlugin />
+                {autoFocus ? <AutoFocusPlugin /> : null}
+                <LinkPlugin />
+                <ListPlugin />
+                <EditorRefPlugin editorRef={editorRef} />
+                <DecoratorNodePlugin />
+                <MarkdownShortcutsPlugin />
+                <CodeHighlightPlugin />
+                <BlockFloatingMenu />
+              </div>
             </div>
-          </div>
+          </BlockSelectionProvider>
         </LexicalComposer>
       </div>
 

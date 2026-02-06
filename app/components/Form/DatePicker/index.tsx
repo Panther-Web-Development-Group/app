@@ -11,9 +11,7 @@ import {
 } from "react"
 import type { DatePickerProps, DateRangePickerProps } from "./types"
 import { cn } from "@/lib/cn"
-import { Calendar, X } from "lucide-react"
-import { Select, SelectContent, SelectOption, SelectTrigger } from "../Select"
-import { NumberInput } from "../Number"
+import { Calendar, ChevronLeft, ChevronRight, X } from "lucide-react"
 import { Button } from "../../Button"
 
 function pad2(n: number) {
@@ -81,11 +79,29 @@ const MONTHS = [
 
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
 
+/** Format date for trigger display (e.g. "January 20, 2026") */
+function formatDisplayDate(ymd: string): string {
+  const d = parseYmd(ymd)
+  if (!d) return ymd
+  return d.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  })
+}
+
 function inBounds(d: Date, min?: Date | null, max?: Date | null) {
   if (min && isBefore(d, min)) return false
   if (max && isAfter(d, max)) return false
   return true
 }
+
+const navButtonClass =
+  "h-9 w-9 shrink-0 rounded-md border border-(--pw-border) bg-background/10 p-0 text-foreground/80 hover:bg-background/15 hover:text-foreground focus-visible:ring-2 focus-visible:ring-(--pw-ring) disabled:opacity-50 disabled:pointer-events-none inline-flex items-center justify-center"
+const clearButtonClass =
+  "h-9 w-9 shrink-0 rounded-md border border-(--pw-border) bg-background/10 p-0 text-foreground/70 hover:bg-background/15 hover:text-foreground focus-visible:ring-2 focus-visible:ring-(--pw-ring) inline-flex items-center justify-center"
+const todayButtonClass =
+  "rounded-md border border-(--pw-border) bg-background/10 px-3 py-2 text-sm font-medium text-foreground/90 hover:bg-background/15 focus-visible:ring-2 focus-visible:ring-(--pw-ring) inline-flex items-center justify-center"
 
 function DayButton({
   day,
@@ -93,6 +109,8 @@ function DayButton({
   selected,
   inRange,
   isRangeEdge,
+  isToday,
+  isOutside,
   onClick,
   onHover,
 }: {
@@ -101,28 +119,30 @@ function DayButton({
   selected: boolean
   inRange: boolean
   isRangeEdge: boolean
+  isToday: boolean
+  isOutside: boolean
   onClick: () => void
   onHover?: () => void
 }) {
   return (
-    <Button
+    <button
       type="button"
       disabled={disabled}
       onClick={onClick}
       onMouseEnter={onHover}
       className={cn(
-        "relative flex h-9 w-9 items-center justify-center rounded-md text-sm",
+        "relative flex h-9 w-9 items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--pw-ring)",
         disabled ? "cursor-not-allowed text-foreground/35" : "text-foreground/85 hover:bg-background/15",
+        isOutside && !selected && "text-foreground/45",
+        isToday && !selected && "bg-accent/20 text-accent-foreground font-semibold",
         inRange ? "bg-accent/15" : "",
-        selected ? "bg-accent/35 text-foreground shadow-[0_10px_30px_var(--pw-shadow)]" : "",
+        selected && "bg-accent text-accent-foreground font-semibold",
         isRangeEdge ? "ring-1 ring-(--pw-border)" : ""
       )}
       aria-label={toYmd(day)}
-      variant="ghost"
-      size="small"
     >
       {day.getDate()}
-    </Button>
+    </button>
   )
 }
 
@@ -136,6 +156,7 @@ function CalendarMonth({
   max,
   onPick,
   onHoverDay,
+  showOutsideDays = true,
 }: {
   year: number
   month: number
@@ -146,19 +167,37 @@ function CalendarMonth({
   max?: Date | null
   onPick: (d: Date) => void
   onHoverDay?: (d: Date | null) => void
+  showOutsideDays?: boolean
 }) {
   const first = startOfMonth(year, month)
   const leading = first.getDay()
   const count = daysInMonth(year, month)
 
   const days: Array<Date | null> = []
-  for (let i = 0; i < leading; i++) days.push(null)
+  if (showOutsideDays) {
+    const prevMonth = month === 0 ? 11 : month - 1
+    const prevYear = month === 0 ? year - 1 : year
+    const prevCount = daysInMonth(prevYear, prevMonth)
+    for (let i = leading - 1; i >= 0; i--) {
+      days.push(new Date(prevYear, prevMonth, prevCount - i))
+    }
+  } else {
+    for (let i = 0; i < leading; i++) days.push(null)
+  }
   for (let d = 1; d <= count; d++) days.push(new Date(year, month, d))
-  while (days.length % 7 !== 0) days.push(null)
+  if (showOutsideDays) {
+    const remaining = 42 - days.length
+    for (let d = 1; d <= remaining; d++) {
+      days.push(new Date(year, month + 1, d))
+    }
+  } else {
+    while (days.length % 7 !== 0) days.push(null)
+  }
 
   const rangeStart = range?.start ?? null
   const rangeEnd = range?.end ?? null
   const previewEnd = rangeEnd ?? hover
+  const today = useMemo(() => new Date(), [])
 
   const isInPreviewRange = useCallback(
     (d: Date) => {
@@ -175,7 +214,7 @@ function CalendarMonth({
 
   return (
     <div className="w-74">
-      <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-foreground/60">
+      <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-foreground/60">
         {WEEKDAYS.map((w) => (
           <div key={w} className="py-1">
             {w}
@@ -189,6 +228,8 @@ function CalendarMonth({
 
           const disabled = !inBounds(d, min, max)
           const selectedSingle = selected ? isSameDay(d, selected) : false
+          const isOutsideDay = d.getMonth() !== month
+          const isTodayDay = isSameDay(d, today)
 
           const inRange = range ? isInPreviewRange(d) : false
           const isEdge =
@@ -203,6 +244,8 @@ function CalendarMonth({
               selected={selectedSingle || (range ? isEdge === true : false)}
               inRange={range ? inRange : false}
               isRangeEdge={Boolean(range && isEdge)}
+              isToday={isTodayDay}
+              isOutside={isOutsideDay}
               onClick={() => onPick(d)}
               onHover={onHoverDay ? () => onHoverDay(d) : undefined}
             />
@@ -280,7 +323,31 @@ export const DatePicker: FC<DatePickerProps> = ({
   const id = useId()
   const buttonId = `${id}-date-trigger`
 
-  const display = value ? value : placeholder
+  const display = value ? formatDisplayDate(value) : placeholder
+
+  const canGoPrev = useMemo(() => {
+    if (!minDate) return true
+    const viewStart = startOfMonth(viewYear, viewMonth)
+    return isAfter(viewStart, minDate) || viewStart.getTime() === minDate.getTime()
+  }, [minDate, viewMonth, viewYear])
+
+  const canGoNext = useMemo(() => {
+    if (!maxDate) return true
+    const viewEnd = new Date(viewYear, viewMonth + 1, 0)
+    return isBefore(viewEnd, maxDate) || viewEnd.getTime() === maxDate.getTime()
+  }, [maxDate, viewMonth, viewYear])
+
+  const goPrev = useCallback(() => {
+    const prev = addMonths(viewYear, viewMonth, -1)
+    setViewYear(prev.year)
+    setViewMonth(prev.month)
+  }, [viewMonth, viewYear])
+
+  const goNext = useCallback(() => {
+    const next = addMonths(viewYear, viewMonth, 1)
+    setViewYear(next.year)
+    setViewMonth(next.month)
+  }, [viewMonth, viewYear])
 
   return (
     <div {...divProps} ref={rootRef} className={cn("relative", className)} data-disabled={disabled ? "" : undefined}>
@@ -291,53 +358,63 @@ export const DatePicker: FC<DatePickerProps> = ({
         type="button"
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
+        data-empty={!value}
         className={cn(
-          "inline-flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none",
+          "inline-flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm font-normal outline-none",
           "transition-colors",
           "focus-visible:ring-2 focus-visible:ring-(--pw-ring)",
-          disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-background/15"
+          disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-background/15",
+          "data-[empty=true]:text-foreground/50"
         )}
       >
-        <span className={cn("truncate text-left", value ? "text-foreground/90" : "text-foreground/50")}>{display}</span>
-        <Calendar className="h-4 w-4 text-foreground/70" />
+        <span className="truncate text-left">{display}</span>
+        <Calendar className="h-4 w-4 shrink-0 text-foreground/70" />
       </Button>
 
       {open ? (
         <div
           role="dialog"
           aria-labelledby={buttonId}
-          className={cn(
-            "absolute left-0 top-full z-50 mt-2 w-full min-w-[20rem] overflow-hidden rounded-lg border border-(--pw-border) bg-background shadow-[0_10px_30px_var(--pw-shadow)]"
-          )}
+          className="absolute left-0 top-full z-50 mt-2 w-auto rounded-lg border border-(--pw-border) bg-background p-0 shadow-[0_10px_30px_var(--pw-shadow)]"
         >
-          <div className="flex items-center gap-2 border-b border-(--pw-border) bg-secondary/20 p-2">
-            <div className="flex-1">
-              <Select value={String(viewMonth)} onValueChange={(v) => setViewMonth(Number(v))}>
-                <SelectTrigger className="h-9" />
-                <SelectContent>
-                  {MONTHS.map((m, idx) => (
-                    <SelectOption key={m} value={String(idx)}>
-                      {m}
-                    </SelectOption>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="flex items-center gap-1 border-b border-(--pw-border) p-2">
+            <Button
+              type="button"
+              disabled={!canGoPrev}
+              onClick={goPrev}
+              className={navButtonClass}
+              aria-label="Previous month"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex flex-1 items-center justify-center text-sm font-medium text-foreground">
+              {MONTHS[viewMonth]} {viewYear}
             </div>
-
-            <div className="w-28">
-              <NumberInput
-                value={viewYear}
-                onValueChange={(n) => {
-                  if (typeof n !== "number" || Number.isNaN(n)) return
-                  setViewYear(Math.max(1, Math.floor(n)))
-                }}
-                min={1}
-                step={1}
-                inputClassName="h-9"
-                aria-label="Year"
-              />
-            </div>
-
+            <Button
+              type="button"
+              disabled={!canGoNext}
+              onClick={goNext}
+              className={navButtonClass}
+              aria-label="Next month"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              disabled={disabled}
+              onClick={() => {
+                const todayYmd = toYmd(today)
+                if (!inBounds(today, minDate, maxDate)) return
+                emit(todayYmd)
+                setViewYear(today.getFullYear())
+                setViewMonth(today.getMonth())
+                setOpen(false)
+              }}
+              className={todayButtonClass}
+              aria-label="Today"
+            >
+              Today
+            </Button>
             <Button
               type="button"
               disabled={disabled}
@@ -345,10 +422,7 @@ export const DatePicker: FC<DatePickerProps> = ({
                 emit(null)
                 setOpen(false)
               }}
-              className={cn(
-                "inline-flex h-9 w-9 items-center justify-center rounded-md border border-(--pw-border) bg-background/10 text-foreground/70",
-                disabled ? "cursor-not-allowed opacity-60" : "hover:bg-background/20"
-              )}
+              className={clearButtonClass}
               aria-label="Clear"
               title="Clear"
             >
@@ -461,7 +535,12 @@ export const DateRangePicker: FC<DateRangePickerProps> = ({
   const id = useId()
   const buttonId = `${id}-range-trigger`
 
-  const display = start && end ? `${start} → ${end}` : start ? `${start} → …` : placeholder
+  const display =
+    start && end
+      ? `${formatDisplayDate(start)} – ${formatDisplayDate(end)}`
+      : start
+        ? `${formatDisplayDate(start)} – …`
+        : placeholder
 
   const pickDay = useCallback(
     (d: Date) => {
@@ -495,6 +574,31 @@ export const DateRangePicker: FC<DateRangePickerProps> = ({
 
   const nextMonth = useMemo(() => addMonths(viewYear, viewMonth, 1), [viewMonth, viewYear])
 
+  const rangeCanGoPrev = useMemo(() => {
+    if (!minDate) return true
+    const viewStart = startOfMonth(viewYear, viewMonth)
+    return viewStart.getTime() > minDate.getTime()
+  }, [minDate, viewMonth, viewYear])
+
+  const rangeCanGoNext = useMemo(() => {
+    if (!maxDate) return true
+    const next = addMonths(viewYear, viewMonth, 1)
+    const nextMonthEnd = new Date(next.year, next.month + 1, 0)
+    return nextMonthEnd.getTime() < maxDate.getTime()
+  }, [maxDate, viewMonth, viewYear])
+
+  const rangeGoPrev = useCallback(() => {
+    const prev = addMonths(viewYear, viewMonth, -1)
+    setViewYear(prev.year)
+    setViewMonth(prev.month)
+  }, [viewMonth, viewYear])
+
+  const rangeGoNext = useCallback(() => {
+    const next = addMonths(viewYear, viewMonth, 1)
+    setViewYear(next.year)
+    setViewMonth(next.month)
+  }, [viewMonth, viewYear])
+
   return (
     <div {...divProps} ref={rootRef} className={cn("relative", className)} data-disabled={disabled ? "" : undefined}>
       {!disabled && nameStart && start ? <input type="hidden" name={nameStart} value={start} /> : null}
@@ -505,70 +609,80 @@ export const DateRangePicker: FC<DateRangePickerProps> = ({
         type="button"
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
+        data-empty={!start}
         className={cn(
-          "inline-flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none",
+          "inline-flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm font-normal outline-none",
           "transition-colors",
           "focus-visible:ring-2 focus-visible:ring-(--pw-ring)",
-          disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-background/15"
+          disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-background/15",
+          "data-[empty=true]:text-foreground/50"
         )}
       >
-        <span className={cn("truncate text-left", start ? "text-foreground/90" : "text-foreground/50")}>{display}</span>
-        <Calendar className="h-4 w-4 text-foreground/70" />
+        <span className="truncate text-left">{display}</span>
+        <Calendar className="h-4 w-4 shrink-0 text-foreground/70" />
       </Button>
 
       {open ? (
         <div
           role="dialog"
           aria-labelledby={buttonId}
-          className={cn(
-            "absolute left-0 top-full z-50 mt-2 w-full min-w-[40rem] overflow-hidden rounded-lg border border-(--pw-border) bg-background shadow-[0_10px_30px_var(--pw-shadow)]"
-          )}
+          className="absolute left-0 top-full z-50 mt-2 w-auto min-w-[36rem] rounded-lg border border-(--pw-border) bg-background p-0 shadow-[0_10px_30px_var(--pw-shadow)]"
         >
-          <div className="flex flex-wrap items-center gap-2 border-b border-(--pw-border) bg-secondary/20 p-2">
-            <div className="flex items-center gap-2 text-xs font-semibold text-foreground/70">
-              <span className="rounded-full border border-(--pw-border) bg-background/10 px-2 py-1">
-                Picking: {picking}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-(--pw-border) p-2">
+            <div className="flex items-center gap-2 text-xs font-medium text-foreground/70">
+              <span className="rounded-md border border-(--pw-border) bg-background/10 px-2 py-1">
+                {picking === "start" ? "Start date" : "End date"}
               </span>
               {start ? (
-                <span className="rounded-full border border-(--pw-border) bg-background/10 px-2 py-1">
-                  Start: {start}
+                <span className="rounded-md border border-(--pw-border) bg-background/10 px-2 py-1">
+                  {formatDisplayDate(start)}
                 </span>
               ) : null}
               {end ? (
-                <span className="rounded-full border border-(--pw-border) bg-background/10 px-2 py-1">
-                  End: {end}
+                <span className="rounded-md border border-(--pw-border) bg-background/10 px-2 py-1">
+                  {formatDisplayDate(end)}
                 </span>
               ) : null}
             </div>
 
-            <div className="ml-auto flex items-center gap-2">
-              <div className="w-40">
-                <Select value={String(viewMonth)} onValueChange={(v) => setViewMonth(Number(v))}>
-                  <SelectTrigger className="h-9" />
-                  <SelectContent>
-                    {MONTHS.map((m, idx) => (
-                      <SelectOption key={m} value={String(idx)}>
-                        {m}
-                      </SelectOption>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="w-28">
-                <NumberInput
-                  value={viewYear}
-                  onValueChange={(n) => {
-                    if (typeof n !== "number" || Number.isNaN(n)) return
-                    setViewYear(Math.max(1, Math.floor(n)))
-                  }}
-                  min={1}
-                  step={1}
-                  inputClassName="h-9"
-                  aria-label="Year"
-                />
-              </div>
-
-              <Button
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                disabled={!rangeCanGoPrev}
+                onClick={rangeGoPrev}
+                className={navButtonClass}
+                aria-label="Previous month"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                disabled={!rangeCanGoNext}
+                onClick={rangeGoNext}
+                className={navButtonClass}
+                aria-label="Next month"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                disabled={disabled || !inBounds(today, minDate, maxDate)}
+                onClick={() => {
+                  const todayYmd = toYmd(today)
+                  if (!inBounds(today, minDate, maxDate)) return
+                  emit([todayYmd, todayYmd])
+                  setViewYear(today.getFullYear())
+                  setViewMonth(today.getMonth())
+                  setPicking("start")
+                  setHover(null)
+                  setOpen(false)
+                }}
+                className={todayButtonClass}
+                aria-label="Today"
+              >
+                Today
+              </button>
+              <button
                 type="button"
                 disabled={disabled}
                 onClick={() => {
@@ -576,17 +690,12 @@ export const DateRangePicker: FC<DateRangePickerProps> = ({
                   setPicking("start")
                   setHover(null)
                 }}
-                className={cn(
-                  "inline-flex h-9 w-9 items-center justify-center rounded-md border border-(--pw-border) bg-background/10 text-foreground/70",
-                  disabled ? "cursor-not-allowed opacity-60" : "hover:bg-background/20"
-                )}
+                className={clearButtonClass}
                 aria-label="Clear"
                 title="Clear"
-                variant="ghost"
-                size="small"
               >
                 <X className="h-4 w-4" />
-              </Button>
+              </button>
             </div>
           </div>
 

@@ -60,7 +60,9 @@ export const NumberInput: FC<NumberInputProps> = ({
 
       const n = Number(raw)
       if (!Number.isFinite(n)) return
-      emit(clamp(n, min, max))
+      const minNum = min != null ? Number(min) : undefined
+      const maxNum = max != null ? Number(max) : undefined
+      emit(clamp(n, minNum, maxNum))
     },
     [emit, max, min]
   )
@@ -70,7 +72,9 @@ export const NumberInput: FC<NumberInputProps> = ({
       if (disabled) return
 
       const current = isFiniteNumber(value) ? value : 0
-      const next = clamp(current + dir * Number(step || 1), min, max)
+      const minNum = min != null ? Number(min) : undefined
+      const maxNum = max != null ? Number(max) : undefined
+      const next = clamp(current + dir * Number(step ?? 1), minNum, maxNum)
       emit(next)
     },
     [disabled, emit, max, min, step, value]
@@ -78,8 +82,35 @@ export const NumberInput: FC<NumberInputProps> = ({
 
   const isVertical = spinnerPosition === "top-bottom"
 
+  const inputClasses = cn(
+    "h-10 min-w-0 flex-1 text-sm text-foreground outline-none transition-colors",
+    "focus-visible:ring-2 focus-visible:ring-(--pw-ring) focus-visible:ring-inset",
+    disabled ? "cursor-not-allowed opacity-60" : "hover:bg-background/10",
+    "[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+    "[-moz-appearance:textfield]",
+    isVertical ? "rounded-lg border border-(--pw-border) bg-background/10 px-3 pr-10" : "rounded-l-lg border border-(--pw-border) border-r-0 bg-background/10 px-3 pr-2",
+    inputClassName
+  )
+
+  const spinnerWrapperClasses = cn(
+    "flex shrink-0 items-stretch overflow-hidden rounded-r-lg border border-(--pw-border) border-l-0 bg-background/10",
+    isVertical && "absolute right-0 top-0 h-full rounded-l-none rounded-r-lg border-l border-(--pw-border)"
+  )
+
+  const spinnerButtonClasses = cn(
+    "flex flex-1 items-center justify-center text-foreground/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--pw-ring) focus-visible:ring-inset",
+    disabled ? "cursor-not-allowed" : "hover:bg-background/20 hover:text-foreground"
+  )
+
   return (
-    <div className={cn("relative", className)} data-disabled={disabled ? "" : undefined}>
+    <div
+      className={cn(
+        "flex w-full max-w-full",
+        isVertical ? "relative" : "",
+        className
+      )}
+      data-disabled={disabled ? "" : undefined}
+    >
       <input
         {...inputProps}
         id={inputId}
@@ -92,75 +123,52 @@ export const NumberInput: FC<NumberInputProps> = ({
         step={step}
         value={valueAsString}
         onChange={onChange}
-        className={cn(
-          "h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none",
-          "transition-colors",
-          "focus-visible:ring-2 focus-visible:ring-(--pw-ring)",
-          disabled ? "cursor-not-allowed opacity-60" : "hover:bg-background/15",
-          // Hide native spinners
-          "[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
-          "[-moz-appearance:textfield]",
-          // Adjust padding based on spinner position
-          isVertical ? "pr-3" : "pr-12",
-          inputClassName
-        )}
+        className={inputClasses}
       />
 
       {isVertical ? (
-        <div className="absolute right-0.5 top-0 flex h-full flex-col justify-between py-0.5">
+        <div className={cn(spinnerWrapperClasses, "w-9 flex-col py-0.5")}>
           <button
             type="button"
             onClick={() => bump(1)}
             disabled={disabled}
-            className={cn(
-              "flex h-3 w-5 items-center justify-center rounded-t border border-(--pw-border) bg-background/10 text-foreground/70 transition-colors",
-              disabled ? "cursor-not-allowed" : "hover:bg-background/20"
-            )}
+            className={cn(spinnerButtonClasses, "min-h-0 flex-1 rounded-none")}
             aria-label="Increment"
           >
-            <ChevronUp className="h-2.5 w-2.5" />
+            <ChevronUp className="h-3 w-3" />
           </button>
+          <div className="h-px shrink-0 bg-(--pw-border)" />
           <button
             type="button"
             onClick={() => bump(-1)}
             disabled={disabled}
-            className={cn(
-              "flex h-3 w-5 items-center justify-center rounded-b border-t border-(--pw-border) bg-background/10 text-foreground/70 transition-colors",
-              disabled ? "cursor-not-allowed" : "hover:bg-background/20"
-            )}
+            className={cn(spinnerButtonClasses, "min-h-0 flex-1 rounded-none")}
             aria-label="Decrement"
           >
-            <ChevronDown className="h-2.5 w-2.5" />
+            <ChevronDown className="h-3 w-3" />
           </button>
         </div>
       ) : (
-        <div className="absolute right-1 top-1/2 -translate-y-1/2">
-          <div className="grid h-8 w-10 grid-rows-2 overflow-hidden rounded-md border border-(--pw-border) bg-background/10">
-            <button
-              type="button"
-              onClick={() => bump(1)}
-              disabled={disabled}
-              className={cn(
-                "flex items-center justify-center text-foreground/70 transition-colors",
-                disabled ? "cursor-not-allowed" : "hover:bg-background/20"
-              )}
-              aria-label="Increment"
-            >
-              <ChevronUp className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => bump(-1)}
-              disabled={disabled}
-              className={cn(
-                "flex items-center justify-center border-t border-(--pw-border) text-foreground/70 transition-colors",
-                disabled ? "cursor-not-allowed" : "hover:bg-background/20"
-              )}
-              aria-label="Decrement"
-            >
-              <ChevronDown className="h-4 w-4" />
-            </button>
-          </div>
+        <div className={cn(spinnerWrapperClasses, "h-10 w-10 flex-col")}>
+          <button
+            type="button"
+            onClick={() => bump(1)}
+            disabled={disabled}
+            className={cn(spinnerButtonClasses, "flex-1 rounded-none rounded-tr-lg")}
+            aria-label="Increment"
+          >
+            <ChevronUp className="h-4 w-4" />
+          </button>
+          <div className="h-px shrink-0 bg-(--pw-border)" />
+          <button
+            type="button"
+            onClick={() => bump(-1)}
+            disabled={disabled}
+            className={cn(spinnerButtonClasses, "flex-1 rounded-none rounded-br-lg")}
+            aria-label="Decrement"
+          >
+            <ChevronDown className="h-4 w-4" />
+          </button>
         </div>
       )}
     </div>

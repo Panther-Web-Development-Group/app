@@ -1,5 +1,5 @@
- "use client"
-import { useCallback, useMemo, type FC } from "react"
+"use client"
+import { useCallback, useEffect, useMemo, useRef, type FC } from "react"
 import { cn } from "@/lib/cn"
 import type { SelectTriggerProps } from "./types"
 import { useSelectContext } from "./Context"
@@ -26,11 +26,18 @@ export const SelectTrigger: FC<SelectTriggerProps> = ({
     setOpen,
     value,
     getOptionLabel,
+    getAllOptionValues,
     triggerId,
     listboxId,
+    focusedValue,
+    setFocusedValue,
+    getOptionElement,
+    labelsVersion,
   } = useSelectContext()
 
   const disabled = disabledCtx || disabledProp
+  const typeAheadRef = useRef<string>("")
+  const typeAheadTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const display = useMemo(() => {
     if (children) return children
@@ -63,7 +70,7 @@ export const SelectTrigger: FC<SelectTriggerProps> = ({
     const v = typeof value === "string" ? value : undefined
     if (!v) return placeholder ?? <span className="text-foreground/50">Select…</span>
     return getOptionLabel(v) ?? v
-  }, [children, getOptionLabel, multiple, placeholder, showMultiple, value])
+  }, [children, getOptionLabel, multiple, placeholder, showMultiple, value, labelsVersion])
 
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -76,24 +83,126 @@ export const SelectTrigger: FC<SelectTriggerProps> = ({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLButtonElement>) => {
+      if (disabled) return
+
       switch (e.key) {
         case "ArrowDown":
         case "ArrowUp":
+          e.preventDefault()
+          if (!open) {
+            setOpen(true)
+          } else {
+            // Navigate options
+            const options = getAllOptionValues()
+            if (options.length === 0) break
+
+            const currentIndex = focusedValue ? options.indexOf(focusedValue) : -1
+            let nextIndex: number
+
+            if (e.key === "ArrowDown") {
+              nextIndex = currentIndex < options.length - 1 ? currentIndex + 1 : 0
+            } else {
+              nextIndex = currentIndex > 0 ? currentIndex - 1 : options.length - 1
+            }
+
+            const nextValue = options[nextIndex]
+            if (nextValue) {
+              setFocusedValue(nextValue)
+              const nextElement = getOptionElement(nextValue)
+              nextElement?.focus()
+            }
+          }
+          break
         case "Enter":
         case " ":
           e.preventDefault()
-          if (!disabled) setOpen(true)
+          if (!open) {
+            setOpen(true)
+          } else if (focusedValue) {
+            // Select focused option
+            const focusedElement = getOptionElement(focusedValue)
+            focusedElement?.click()
+          }
           break
         case "Escape":
+          e.preventDefault()
           setOpen(false)
+          setFocusedValue(null)
+          break
+        case "Home":
+        case "End":
+          if (open) {
+            e.preventDefault()
+            const options = getAllOptionValues()
+            if (options.length === 0) break
+
+            const targetValue = e.key === "Home" ? options[0] : options[options.length - 1]
+            if (targetValue) {
+              setFocusedValue(targetValue)
+              const targetElement = getOptionElement(targetValue)
+              targetElement?.focus()
+            }
+          }
           break
         default:
+          // Type-ahead search
+          if (open && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            e.preventDefault()
+            const char = e.key.toLowerCase()
+            typeAheadRef.current += char
+
+            // Clear timeout
+            if (typeAheadTimeoutRef.current) {
+              clearTimeout(typeAheadTimeoutRef.current)
+            }
+
+            // Find matching option
+            const options = getAllOptionValues()
+            const searchText = typeAheadRef.current
+            const match = options.find((opt) => {
+              const label = getOptionLabel(opt)
+              const text = typeof label === "string" ? label : 
+                          typeof label === "number" ? String(label) :
+                          label ? String(label) : opt
+              return text.toLowerCase().startsWith(searchText)
+            })
+
+            if (match) {
+              setFocusedValue(match)
+              const matchElement = getOptionElement(match)
+              matchElement?.focus()
+            }
+
+            // Clear type-ahead after 1 second
+            typeAheadTimeoutRef.current = setTimeout(() => {
+              typeAheadRef.current = ""
+            }, 1000)
+          }
           break
       }
       onKeyDown?.(e)
     },
-    [disabled, onKeyDown, setOpen]
+    [disabled, open, getAllOptionValues, focusedValue, setFocusedValue, getOptionElement, getOptionLabel, onKeyDown, setOpen]
   )
+
+  // Cleanup type-ahead timeout
+  useEffect(() => {
+    return () => {
+      if (typeAheadTimeoutRef.current) {
+        clearTimeout(typeAheadTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  // Reset type-ahead when closing
+  useEffect(() => {
+    if (!open) {
+      typeAheadRef.current = ""
+      if (typeAheadTimeoutRef.current) {
+        clearTimeout(typeAheadTimeoutRef.current)
+      }
+    }
+  }, [open])
 
   return (
     <button
@@ -108,15 +217,22 @@ export const SelectTrigger: FC<SelectTriggerProps> = ({
       onKeyDown={handleKeyDown}
       className={cn(
         "inline-flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none",
-        "transition-colors",
-        "focus-visible:ring-2 focus-visible:ring-(--pw-ring)",
-        disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-background/15",
+        "transition-all duration-200",
+        "focus-visible:ring-2 focus-visible:ring-(--pw-ring) focus-visible:ring-offset-2",
+        disabled
+          ? "cursor-not-allowed opacity-60"
+          : "cursor-pointer hover:bg-background/15 hover:border-(--pw-border)/80 active:bg-background/20",
+        open && "border-(--pw-border)/80",
         className
       )}
     >
       <span className="min-w-0 flex-1 truncate text-left">{display}</span>
-      <ChevronDown className={cn("h-4 w-4 text-foreground/70 transition-transform", open && "rotate-180")} />
+      <ChevronDown
+        className={cn(
+          "h-4 w-4 shrink-0 text-foreground/70 transition-transform duration-200",
+          open && "rotate-180"
+        )}
+      />
     </button>
   )
 }
-

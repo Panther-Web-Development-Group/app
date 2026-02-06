@@ -24,7 +24,7 @@ export const Header: FC<HeaderProps> = ({
       )}
       {...props}
     >
-      <div className="container mx-auto relative flex h-16 items-center justify-between px-4">
+      <div className="container w-full relative flex items-center justify-between p-4">
         <div className="flex items-center gap-3">
           {showSidebarToggle && <SidebarToggle />}
           {logo || <HeaderLogo />}

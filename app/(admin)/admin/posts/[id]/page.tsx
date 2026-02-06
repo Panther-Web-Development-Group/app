@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Editor, getEditorStateAsJSON } from "@/app/components/Form/Editor"
 import { updatePost, getPostById, createPost } from "@/lib/supabase/server/actions/posts"
@@ -9,6 +9,10 @@ import Link from "next/link"
 import { EditorState, LexicalEditor } from "lexical"
 import { Button } from "@/app/components/Button"
 import { Checkbox } from "@/app/components/Form/Checkbox"
+import { InputGroup } from "@/app/components/Form/InputGroup"
+import { TextAreaGroup } from "@/app/components/Form/TextAreaGroup"
+import { TitleWithSlug } from "@/app/(admin)/admin/pages/[id]/TitleWithSlug"
+import { ImageSelector } from "@/app/(admin)/admin/ImageSelector"
 
 export default function EditPostPage() {
   const params = useParams()
@@ -27,57 +31,41 @@ export default function EditPostPage() {
   const [editorState, setEditorState] = useState<string | null>(null)
   const editorRef = useRef<LexicalEditor | null>(null)
 
-  // Generate slug from title
-  const generateSlug = (text: string) => {
-    return text
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, "")
-      .replace(/[\s_-]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-  }
+  // Slug behavior: when locked, slug is read-only and always auto-generated from Title
+  // when unlocked, slug is user-editable and stops auto-updating
+  const [slugLocked, setSlugLocked] = useState<boolean>(isNew ? true : false)
 
-  useEffect(() => {
-    if (!isNew) {
-      loadPost()
-    }
-  }, [id, isNew])
-
-  const loadPost = async () => {
+  const loadPost = useCallback(async () => {
     setLoading(true)
     try {
-      const result = await getPostById(id)
-      if (result.error) {
-        setError(result.error)
+      const { error, data } = await getPostById(id)
+      if (error) {
+        setError(error)
         return
       }
-      if (result.data) {
-        setTitle(result.data.title)
-        setSlug(result.data.slug)
-        setExcerpt(result.data.excerpt || "")
-        setFeaturedImage(result.data.featured_image || "")
-        setIsPublished(result.data.is_published || false)
-        // Set editor content - if it's Lexical JSON, use it directly; if HTML, convert
-        if (result.data.content) {
-          if (typeof result.data.content === "string") {
-            setEditorState(result.data.content)
-          } else if (
-            typeof result.data.content === "object" &&
-            result.data.content !== null &&
-            "root" in result.data.content
-          ) {
-            // Lexical JSON format
-            setEditorState(JSON.stringify(result.data.content))
-          } else if (
-            typeof result.data.content === "object" &&
-            result.data.content !== null &&
-            "html" in result.data.content &&
-            typeof (result.data.content as any).html === "string"
-          ) {
-            setEditorState((result.data.content as any).html)
-          } else {
-            setEditorState(null)
-          }
+      if (data) {
+        setTitle(data.title)
+        setSlug(data.slug)
+        setExcerpt(data.excerpt || "")
+        setFeaturedImage(data.featured_image || "")
+        setIsPublished(data.is_published || false)
+        // Set editor content - handle Lexical JSON, HTML string, or object with html property
+        const c = data.content as unknown
+        if (!c) {
+          setEditorState(null)
+        } else if (typeof c === "string") {
+          setEditorState(c)
+        } else if (typeof c === "object" && c && "root" in c) {
+          setEditorState(JSON.stringify(c))
+        } else if (
+          typeof c === "object" &&
+          c &&
+          "html" in c &&
+          typeof (c as { html?: unknown }).html === "string"
+        ) {
+          setEditorState((c as { html: string }).html)
+        } else {
+          setEditorState(null)
         }
       }
     } catch (err) {
@@ -85,15 +73,17 @@ export default function EditPostPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
+
+  useEffect(() => {
+    if (!isNew) loadPost()
+  }, [loadPost, isNew])
 
   const handleEditorChange = async (
-    state: EditorState,
+    _state: EditorState,
     editor: LexicalEditor,
-    html: string
   ) => {
     editorRef.current = editor
-    // Store the Lexical JSON state
     const json = await getEditorStateAsJSON(editor)
     setEditorState(json)
   }
@@ -113,6 +103,11 @@ export default function EditPostPage() {
     setError(null)
 
     try {
+      if (!editorRef.current) {
+        setError("Editor content is required")
+        return
+      }
+
       // Get the Lexical JSON state
       const contentJson = await getEditorStateAsJSON(editorRef.current)
       const content = JSON.parse(contentJson)
@@ -161,16 +156,16 @@ export default function EditPostPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
+          <h2 className="text-3xl font-bold text-foreground">
             {isNew ? "Create Post" : "Edit Post"}
           </h2>
-          <p className="mt-2 text-zinc-600 dark:text-zinc-400">
+          <p className="mt-2 text-foreground/75">
             {isNew ? "Create a new blog post" : "Edit your blog post"}
           </p>
         </div>
         <Link
           href="/admin/posts"
-          className="flex items-center gap-2 rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          className="inline-flex items-center gap-2 rounded-lg border border-(--pw-border) bg-secondary/20 px-4 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-secondary/30"
         >
           <X className="h-4 w-4" />
           Cancel
@@ -183,77 +178,37 @@ export default function EditPostPage() {
         </div>
       )}
 
-      <div className="space-y-6 rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-        <div>
-          <label
-            htmlFor="title"
-            className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2"
-          >
-            Title *
-          </label>
-          <input
-            id="title"
-            type="text"
-            value={title}
-            onChange={(e) => {
-              setTitle(e.target.value)
-              if (isNew && !slug) {
-                setSlug(generateSlug(e.target.value))
-              }
-            }}
-            className="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder-zinc-500 dark:focus:border-zinc-600 dark:focus:ring-zinc-600"
-            placeholder="Post title"
-          />
-        </div>
+      <div className="space-y-6 rounded-lg border border-(--pw-border) bg-background/50 p-6">
+        <TitleWithSlug
+          title={title}
+          slug={slug}
+          slugLocked={slugLocked}
+          onTitleChange={setTitle}
+          onSlugChange={setSlug}
+          onSlugLockedChange={setSlugLocked}
+          titlePlaceholder="Post title"
+          slugPlaceholder="post-slug"
+          titleLabel="Title"
+          slugLabel="Slug"
+        />
+
+        <TextAreaGroup
+          label="Excerpt"
+          value={excerpt}
+          onChange={(e) => setExcerpt(e.target.value)}
+          rows={3}
+          placeholder="Brief description of the post"
+        />
 
         <div>
-          <label
-            htmlFor="slug"
-            className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2"
-          >
-            Slug *
+          <label className="mb-1 block text-sm font-medium text-foreground/80">
+            Featured Image
           </label>
-          <input
-            id="slug"
-            type="text"
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            className="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder-zinc-500 dark:focus:border-zinc-600 dark:focus:ring-zinc-600"
-            placeholder="post-slug"
-          />
-        </div>
-
-        <div>
-          <label
-            htmlFor="excerpt"
-            className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2"
-          >
-            Excerpt
-          </label>
-          <textarea
-            id="excerpt"
-            value={excerpt}
-            onChange={(e) => setExcerpt(e.target.value)}
-            rows={3}
-            className="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder-zinc-500 dark:focus:border-zinc-600 dark:focus:ring-zinc-600"
-            placeholder="Brief description of the post"
-          />
-        </div>
-
-        <div>
-          <label
-            htmlFor="featured-image"
-            className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2"
-          >
-            Featured Image URL
-          </label>
-          <input
-            id="featured-image"
-            type="url"
+          <ImageSelector
             value={featuredImage}
-            onChange={(e) => setFeaturedImage(e.target.value)}
-            className="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder-zinc-500 dark:focus:border-zinc-600 dark:focus:ring-zinc-600"
-            placeholder="https://example.com/image.jpg"
+            onValueChange={setFeaturedImage}
+            placeholder="Select a featured image"
+            className="mt-1"
           />
         </div>
 
@@ -261,7 +216,8 @@ export default function EditPostPage() {
           <Editor
             label="Content"
             required
-            labelClassName="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+            labelClassName="mb-2 block text-sm font-medium text-foreground/80"
+            contentMinHeightClassName="min-h-[220px]"
             initialContent={editorState}
             onChange={handleEditorChange}
             placeholder="Write your post content here..."
@@ -272,16 +228,16 @@ export default function EditPostPage() {
           <Checkbox
             checked={isPublished}
             onCheckedChange={setIsPublished}
-            label={<span className="text-sm text-zinc-700 dark:text-zinc-300">Published</span>}
+            label="Published"
           />
         </div>
 
-        <div className="flex items-center gap-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+        <div className="flex items-center gap-4 pt-4 border-t border-(--pw-border)">
           <Button
             type="button"
             onClick={() => handleSave(false)}
             disabled={saving}
-            className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="inline-flex h-10 items-center gap-2 rounded-lg bg-accent px-4 text-sm font-semibold text-accent-foreground transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             variant="ghost"
           >
             <Save className="h-4 w-4" />
@@ -291,7 +247,7 @@ export default function EditPostPage() {
             type="button"
             onClick={() => handleSave(true)}
             disabled={saving}
-            className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-10 items-center gap-2 rounded-lg bg-green-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
             variant="ghost"
           >
             <Eye className="h-4 w-4" />

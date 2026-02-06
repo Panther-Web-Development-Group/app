@@ -17,7 +17,7 @@ export default async function AdminPosts() {
           </p>
         </div>
         <Link
-          href="/admin/posts?new=true"
+          href="/admin/posts/new"
           className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition-colors hover:opacity-90"
         >
           <Plus className="h-4 w-4" />

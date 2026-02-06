@@ -42,12 +42,19 @@ export type SelectContextValue = {
   value: string | string[] | undefined
   setValue: (next: string | string[]) => void
 
-  registerOption: (value: string, label: ReactNode) => void
+  registerOption: (value: string, label: ReactNode, element: HTMLElement | null) => void
   unregisterOption: (value: string) => void
   getOptionLabel: (value: string) => ReactNode | undefined
+  getOptionElement: (value: string) => HTMLElement | null | undefined
+  getAllOptionValues: () => string[]
+
+  focusedValue: string | null
+  setFocusedValue: (value: string | null) => void
 
   triggerId: string
   listboxId: string
+  
+  labelsVersion: number
 }
 
 export type SelectTriggerProps = Omit<
@@ -59,6 +66,10 @@ export type SelectTriggerProps = Omit<
 
 export type SelectContentProps = HTMLAttributes<HTMLDivElement> & {
   className?: ClassValue
+  /** Positioning strategy: 'auto' (viewport-aware), 'bottom' (always below), 'top' (always above) */
+  position?: "auto" | "bottom" | "top"
+  /** Maximum height of the content dropdown */
+  maxHeight?: number | string
 }
 
 export type SelectOptionProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "type" | "value"> & {

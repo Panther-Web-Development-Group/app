@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -12,7 +13,7 @@ import {
 import type { ColorPickerProps } from "./types"
 import { cn } from "@/lib/cn"
 import { NumberInput } from "../Number"
-import { Plus, Sparkles, X } from "lucide-react"
+import { ChevronDown, Plus, Sparkles, X } from "lucide-react"
 
 type HSL = { h: number; s: number; l: number }
 type RGB = { r: number; g: number; b: number }
@@ -123,12 +124,23 @@ export const ColorPicker: FC<ColorPickerProps> = ({
   const isControlled = valueProp !== undefined
   const [uncontrolledHex, setUncontrolledHex] = useState<string>(normalizeHex(defaultValue) ?? "#7dd3ff")
   const hex = normalizeHex(isControlled ? (valueProp as string) : uncontrolledHex) ?? "#7dd3ff"
+  const [hexInput, setHexInput] = useState(hex)
+  const [open, setOpen] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setHexInput(hex)
+  }, [hex])
+  const generatedId = useId()
+  const triggerId = `${generatedId}-trigger`
+  const popoverId = `${generatedId}-popover`
+
 
   const paletteControlled = paletteProp !== undefined
   const [uncontrolledPalette, setUncontrolledPalette] = useState<string[]>(
     (defaultPaletteValue ?? []).map((c) => normalizeHex(c)).filter(Boolean) as string[]
   )
-  const palette = (paletteControlled ? (paletteProp as string[]) : uncontrolledPalette) ?? []
+  const palette = useMemo(() => (paletteControlled ? (paletteProp as string[]) : uncontrolledPalette) ?? [], [paletteControlled, paletteProp, uncontrolledPalette])
 
   const emitHex = useCallback(
     (next: string) => {
@@ -137,7 +149,7 @@ export const ColorPicker: FC<ColorPickerProps> = ({
       if (!isControlled) setUncontrolledHex(n)
       onValueChange?.(n)
     },
-    [isControlled, onValueChange]
+    [isControlled, onValueChange, setUncontrolledHex]
   )
 
   const emitPalette = useCallback(
@@ -154,7 +166,7 @@ export const ColorPicker: FC<ColorPickerProps> = ({
 
   useEffect(() => {
     setHsl(rgbToHsl(rgb))
-  }, [rgb.r, rgb.g, rgb.b])
+  }, [rgb])
 
   const slCanvasRef = useRef<HTMLCanvasElement>(null)
   const hueCanvasRef = useRef<HTMLCanvasElement>(null)
@@ -208,6 +220,16 @@ export const ColorPicker: FC<ColorPickerProps> = ({
   useEffect(() => {
     drawSL()
   }, [drawSL])
+
+  // Redraw canvases when popover opens (they're unmounted when closed, so refs are null until open)
+  useEffect(() => {
+    if (!open) return
+    const raf = requestAnimationFrame(() => {
+      drawHue()
+      drawSL()
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [open, drawHue, drawSL])
 
   const slCursor = useMemo(() => {
     const s = clamp(hsl.s, 0, 100)
@@ -317,14 +339,34 @@ export const ColorPicker: FC<ColorPickerProps> = ({
     emitPalette(generatePalette(hsl))
   }, [emitPalette, enablePalettes, hsl])
 
+  useEffect(() => {
+    if (!open) return
+
+    const onPointerDown = (e: MouseEvent | TouchEvent) => {
+      const el = rootRef.current
+      if (!el) return
+      if (e.target instanceof Node && !el.contains(e.target)) {
+        setOpen(false)
+      }
+    }
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false)
+    }
+
+    const controller = new AbortController()
+    const { signal } = controller
+    document.addEventListener("mousedown", onPointerDown, { signal })
+    document.addEventListener("touchstart", onPointerDown, { passive: true, signal })
+    document.addEventListener("keydown", onKeyDown, { signal })
+    return () => controller.abort()
+  }, [open])
+
   return (
     <div
       {...divProps}
-      className={cn(
-        "rounded-lg border border-(--pw-border) bg-secondary/20 p-4",
-        disabled ? "opacity-60" : "",
-        className
-      )}
+      ref={rootRef}
+      className={cn("relative", disabled ? "opacity-60" : "", className)}
       data-disabled={disabled ? "" : undefined}
     >
       {!disabled && name ? <input type="hidden" name={name} value={hex} /> : null}
@@ -332,187 +374,230 @@ export const ColorPicker: FC<ColorPickerProps> = ({
         ? palette.map((c) => <input key={c} type="hidden" name={paletteName} value={c} />)
         : null}
 
-      <div className="grid gap-4 lg:grid-cols-[auto,1fr]">
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <div
-              className="h-12 w-12 rounded-lg border border-(--pw-border) shadow-[0_10px_30px_var(--pw-shadow)]"
-              style={{ background: hex }}
-              aria-label={`Selected color ${hex}`}
-            />
-            <div className="min-w-0">
-              <div className="text-sm font-semibold text-foreground">Color</div>
-              <div className="text-xs text-foreground/70">{hex}</div>
-            </div>
-          </div>
+      <button
+        type="button"
+        id={triggerId}
+        disabled={disabled}
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        aria-controls={popoverId}
+        onClick={() => !disabled && setOpen((o) => !o)}
+        className={cn(
+          "inline-flex h-10 w-full items-center gap-3 rounded-lg border border-(--pw-border) bg-background/10 px-3 text-left outline-none transition-colors",
+          "focus-visible:ring-2 focus-visible:ring-(--pw-ring)",
+          disabled ? "cursor-not-allowed" : "cursor-pointer hover:bg-background/15"
+        )}
+      >
+        <div
+          className="h-6 w-6 shrink-0 rounded-md border border-(--pw-border) shadow-[0_4px_12px_var(--pw-shadow)]"
+          style={{ background: hex }}
+          aria-hidden
+        />
+        <span className="min-w-0 flex-1 truncate text-sm text-foreground/90">{hex}</span>
+        <ChevronDown
+          className={cn("h-4 w-4 shrink-0 text-foreground/70 transition-transform", open && "rotate-180")}
+          aria-hidden
+        />
+      </button>
 
-          <div className="space-y-2">
-            <div className="text-xs font-semibold text-foreground/70">Saturation / Lightness</div>
-            <div className="relative w-fit">
-              <canvas
-                ref={slCanvasRef}
-                width={240}
-                height={160}
-                onPointerDown={onSLPointerDown}
-                onPointerMove={onSLPointerMove}
-                className={cn(
-                  "block rounded-lg border border-(--pw-border) bg-background/10",
-                  disabled ? "cursor-not-allowed" : "cursor-crosshair"
-                )}
-              />
-              <div
-                aria-hidden
-                className="pointer-events-none absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/80 shadow-[0_0_0_1px_rgba(0,0,0,0.35)]"
-                style={{
-                  left: `${(slCursor.xPct / 100) * 240}px`,
-                  top: `${(slCursor.yPct / 100) * 160}px`,
-                }}
-              />
-            </div>
-          </div>
+      {open ? (
+        <div
+          id={popoverId}
+          role="dialog"
+          aria-labelledby={triggerId}
+          className="absolute left-0 top-full z-50 mt-1.5 w-full min-w-[320px] max-w-[calc(100vw-2rem)] rounded-lg border border-(--pw-border) bg-secondary/20 p-4 shadow-[0_10px_40px_var(--pw-shadow)] backdrop-blur-md"
+        >
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap gap-4 items-start">
+              <div className="space-y-2 shrink-0">
+                <div className="text-xs font-semibold text-foreground/70">Saturation / Lightness</div>
+                <div className="relative w-fit">
+                  <canvas
+                    ref={slCanvasRef}
+                    width={240}
+                    height={160}
+                    onPointerDown={onSLPointerDown}
+                    onPointerMove={onSLPointerMove}
+                    className={cn(
+                      "block rounded-lg border border-(--pw-border) bg-background/10",
+                      disabled ? "cursor-not-allowed" : "cursor-crosshair"
+                    )}
+                  />
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/80 shadow-[0_0_0_1px_rgba(0,0,0,0.35)]"
+                    style={{
+                      left: `${(slCursor.xPct / 100) * 240}px`,
+                      top: `${(slCursor.yPct / 100) * 160}px`,
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold text-foreground/70">Hue</div>
+                  <div className="relative w-fit">
+                    <canvas
+                      ref={hueCanvasRef}
+                      width={240}
+                      height={14}
+                      onPointerDown={onHuePointerDown}
+                      onPointerMove={onHuePointerMove}
+                      className={cn(
+                        "block rounded-lg border border-(--pw-border)",
+                        disabled ? "cursor-not-allowed" : "cursor-ew-resize"
+                      )}
+                    />
+                    <div
+                      aria-hidden
+                      className="pointer-events-none absolute top-1/2 h-5 w-1 -translate-y-1/2 rounded bg-foreground/80 shadow-[0_6px_18px_var(--pw-shadow)]"
+                      style={{ left: `${(hueCursor / 360) * 240}px` }}
+                    />
+                  </div>
+                </div>
+              </div>
 
-          <div className="space-y-2">
-            <div className="text-xs font-semibold text-foreground/70">Hue</div>
-            <div className="relative w-fit">
-              <canvas
-                ref={hueCanvasRef}
-                width={240}
-                height={14}
-                onPointerDown={onHuePointerDown}
-                onPointerMove={onHuePointerMove}
-                className={cn(
-                  "block rounded-lg border border-(--pw-border)",
-                  disabled ? "cursor-not-allowed" : "cursor-ew-resize"
-                )}
-              />
-              <div
-                aria-hidden
-                className="pointer-events-none absolute top-1/2 h-5 w-1 -translate-y-1/2 rounded bg-foreground/80 shadow-[0_6px_18px_var(--pw-shadow)]"
-                style={{ left: `${(hueCursor / 360) * 240}px` }}
-              />
-            </div>
-          </div>
-        </div>
+              <div className="grid grid-rows-3 gap-0.5 flex-1 min-w-0">
+                <div className="space-y-1.5">
+                  <div className="text-xs font-semibold text-foreground/70">RGB</div>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <NumberInput
+                      value={rgb.r}
+                      min={0}
+                      max={255}
+                      step={1}
+                      spinnerPosition="top-bottom"
+                      onValueChange={(n) => {
+                        if (typeof n !== "number") return
+                        emitHex(rgbToHex({ ...rgb, r: clamp(n, 0, 255) }))
+                      }}
+                      inputClassName="h-8 text-xs px-2"
+                      className="w-full"
+                      aria-label="Red"
+                    />
+                    <NumberInput
+                      value={rgb.g}
+                      min={0}
+                      max={255}
+                      step={1}
+                      spinnerPosition="top-bottom"
+                      onValueChange={(n) => {
+                        if (typeof n !== "number") return
+                        emitHex(rgbToHex({ ...rgb, g: clamp(n, 0, 255) }))
+                      }}
+                      inputClassName="h-8 text-xs px-2"
+                      className="w-full"
+                      aria-label="Green"
+                    />
+                    <NumberInput
+                      value={rgb.b}
+                      min={0}
+                      max={255}
+                      step={1}
+                      spinnerPosition="top-bottom"
+                      onValueChange={(n) => {
+                        if (typeof n !== "number") return
+                        emitHex(rgbToHex({ ...rgb, b: clamp(n, 0, 255) }))
+                      }}
+                      inputClassName="h-8 text-xs px-2"
+                      className="w-full"
+                      aria-label="Blue"
+                    />
+                  </div>
+                </div>
 
-        <div className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="space-y-1.5">
-              <div className="text-xs font-semibold text-foreground/70">RGB</div>
-              <div className="grid grid-cols-3 gap-2">
-                <NumberInput
-                  value={rgb.r}
-                  min={0}
-                  max={255}
-                  step={1}
-                  spinnerPosition="top-bottom"
-                  onValueChange={(n) => {
-                    if (typeof n !== "number") return
-                    emitHex(rgbToHex({ ...rgb, r: clamp(n, 0, 255) }))
-                  }}
-                  inputClassName="h-8 text-xs px-2"
-                  className="w-full"
-                  aria-label="Red"
-                />
-                <NumberInput
-                  value={rgb.g}
-                  min={0}
-                  max={255}
-                  step={1}
-                  spinnerPosition="top-bottom"
-                  onValueChange={(n) => {
-                    if (typeof n !== "number") return
-                    emitHex(rgbToHex({ ...rgb, g: clamp(n, 0, 255) }))
-                  }}
-                  inputClassName="h-8 text-xs px-2"
-                  className="w-full"
-                  aria-label="Green"
-                />
-                <NumberInput
-                  value={rgb.b}
-                  min={0}
-                  max={255}
-                  step={1}
-                  spinnerPosition="top-bottom"
-                  onValueChange={(n) => {
-                    if (typeof n !== "number") return
-                    emitHex(rgbToHex({ ...rgb, b: clamp(n, 0, 255) }))
-                  }}
-                  inputClassName="h-8 text-xs px-2"
-                  className="w-full"
-                  aria-label="Blue"
-                />
+                <div className="space-y-1.5">
+                  <div className="text-xs font-semibold text-foreground/70">HSL</div>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <NumberInput
+                      value={hsl.h}
+                      min={0}
+                      max={360}
+                      step={1}
+                      spinnerPosition="top-bottom"
+                      onValueChange={(n) => {
+                        if (typeof n !== "number") return
+                        setFromHsl({ ...hsl, h: n })
+                      }}
+                      inputClassName="h-8 text-xs px-2"
+                      className="w-full"
+                      aria-label="Hue"
+                    />
+                    <NumberInput
+                      value={hsl.s}
+                      min={0}
+                      max={100}
+                      step={1}
+                      spinnerPosition="top-bottom"
+                      onValueChange={(n) => {
+                        if (typeof n !== "number") return
+                        setFromHsl({ ...hsl, s: n })
+                      }}
+                      inputClassName="h-8 text-xs px-2"
+                      className="w-full"
+                      aria-label="Saturation"
+                    />
+                    <NumberInput
+                      value={hsl.l}
+                      min={0}
+                      max={100}
+                      step={1}
+                      spinnerPosition="top-bottom"
+                      onValueChange={(n) => {
+                        if (typeof n !== "number") return
+                        setFromHsl({ ...hsl, l: n })
+                      }}
+                      inputClassName="h-8 text-xs px-2"
+                      className="w-full"
+                      aria-label="Lightness"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="text-xs font-semibold text-foreground/70">Hex</div>
+                  <input
+                    type="text"
+                    value={hexInput}
+                    disabled={disabled}
+                    onChange={(e) => {
+                      const raw = e.target.value
+                      setHexInput(raw)
+                      const n = normalizeHex(raw)
+                      if (n) emitHex(n)
+                    }}
+                    onBlur={() => {
+                      const n = normalizeHex(hexInput)
+                      if (n) {
+                        emitHex(n)
+                        setHexInput(n)
+                      } else {
+                        setHexInput(hex)
+                      }
+                    }}
+                    className={cn(
+                      "h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none",
+                      "transition-colors",
+                      "focus-visible:ring-2 focus-visible:ring-(--pw-ring)",
+                      disabled ? "cursor-not-allowed opacity-60" : "hover:bg-background/15"
+                    )}
+                    aria-label="Hex"
+                    placeholder="#RRGGBB"
+                  />
+                  <div className="text-[11px] text-foreground/60">#RRGGBB</div>
+                </div>
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <div className="text-xs font-semibold text-foreground/70">HSL</div>
-              <div className="grid grid-cols-3 gap-2">
-                <NumberInput
-                  value={hsl.h}
-                  min={0}
-                  max={360}
-                  step={1}
-                  spinnerPosition="top-bottom"
-                  onValueChange={(n) => {
-                    if (typeof n !== "number") return
-                    setFromHsl({ ...hsl, h: n })
-                  }}
-                  inputClassName="h-8 text-xs px-2"
-                  className="w-full"
-                  aria-label="Hue"
-                />
-                <NumberInput
-                  value={hsl.s}
-                  min={0}
-                  max={100}
-                  step={1}
-                  spinnerPosition="top-bottom"
-                  onValueChange={(n) => {
-                    if (typeof n !== "number") return
-                    setFromHsl({ ...hsl, s: n })
-                  }}
-                  inputClassName="h-8 text-xs px-2"
-                  className="w-full"
-                  aria-label="Saturation"
-                />
-                <NumberInput
-                  value={hsl.l}
-                  min={0}
-                  max={100}
-                  step={1}
-                  spinnerPosition="top-bottom"
-                  onValueChange={(n) => {
-                    if (typeof n !== "number") return
-                    setFromHsl({ ...hsl, l: n })
-                  }}
-                  inputClassName="h-8 text-xs px-2"
-                  className="w-full"
-                  aria-label="Lightness"
-                />
+            <div className="flex items-center gap-3">
+              <div
+                className="h-10 w-10 shrink-0 rounded-lg border border-(--pw-border) shadow-[0_10px_30px_var(--pw-shadow)]"
+                style={{ background: hex }}
+                aria-hidden
+              />
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-foreground">Color</div>
+                <div className="text-xs text-foreground/70">{hex}</div>
               </div>
             </div>
-
-            <div className="space-y-1.5">
-              <div className="text-xs font-semibold text-foreground/70">Hex</div>
-              <input
-                value={hex}
-                disabled={disabled}
-                onChange={(e) => {
-                  const n = normalizeHex(e.target.value)
-                  if (!n) return
-                  emitHex(n)
-                }}
-                className={cn(
-                  "h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none",
-                  "transition-colors",
-                  "focus-visible:ring-2 focus-visible:ring-(--pw-ring)",
-                  disabled ? "cursor-not-allowed opacity-60" : "hover:bg-background/15"
-                )}
-                aria-label="Hex"
-              />
-              <div className="text-[11px] text-foreground/60">#RRGGBB</div>
-            </div>
-          </div>
 
           {enablePalettes ? (
             <div className="rounded-lg border border-(--pw-border) bg-background/5 p-3">
@@ -585,7 +670,8 @@ export const ColorPicker: FC<ColorPickerProps> = ({
             </div>
           ) : null}
         </div>
-      </div>
+        </div>
+      ) : null}
     </div>
   )
 }

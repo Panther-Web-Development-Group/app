@@ -1,26 +1,26 @@
 import { getPages } from "@/lib/supabase/server"
 import Link from "next/link"
-import { Plus, Edit, Eye, EyeOff } from "lucide-react"
+import { Plus, Edit, Eye, EyeOff, ExternalLink } from "lucide-react"
 
 export default async function AdminPages() {
   const pages = await getPages({ publishedOnly: false, limit: 100 })
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-foreground">
+          <h1 className="text-3xl font-bold text-foreground">
             Pages
-          </h2>
+          </h1>
           <p className="mt-2 text-foreground/75">
             Manage your site pages
           </p>
         </div>
         <Link
           href="/admin/pages/new"
-          className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition-colors hover:opacity-90"
+          className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition-colors hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--pw-ring)"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-4 w-4" aria-hidden />
           New Page
         </Link>
       </div>
@@ -30,29 +30,29 @@ export default async function AdminPages() {
           <p className="text-foreground/75">No pages found.</p>
           <Link
             href="/admin/pages/new"
-            className="mt-4 inline-block text-sm font-semibold text-foreground underline"
+            className="mt-4 inline-block text-sm font-semibold text-foreground underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--pw-ring)"
           >
             Create your first page
           </Link>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-(--pw-border) bg-secondary/20">
-          <table className="min-w-full divide-y divide-(--pw-border)">
+        <div className="overflow-x-auto rounded-lg border border-(--pw-border) bg-secondary/20">
+          <table className="min-w-full divide-y divide-(--pw-border)" role="grid">
             <thead className="bg-secondary/30">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-foreground/70">
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-foreground/70">
                   Title
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-foreground/70">
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-foreground/70">
                   Slug
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-foreground/70">
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-foreground/70">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-foreground/70">
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-foreground/70">
                   Updated
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-foreground/70">
+                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-foreground/70">
                   Actions
                 </th>
               </tr>
@@ -67,9 +67,9 @@ export default async function AdminPages() {
                     <div className="text-sm font-semibold text-foreground">
                       {page.title}
                     </div>
-                    {page.summary && (
-                      <div className="mt-1 text-xs text-foreground/70">
-                        {page.summary.substring(0, 60)}...
+                    {page.summary != null && page.summary !== "" && (
+                      <div className="mt-1 max-w-md truncate text-xs text-foreground/70">
+                        {page.summary.length > 60 ? `${page.summary.slice(0, 60)}…` : page.summary}
                       </div>
                     )}
                   </td>
@@ -81,12 +81,12 @@ export default async function AdminPages() {
                   <td className="whitespace-nowrap px-6 py-4">
                     {page.is_published ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-semibold text-foreground">
-                        <Eye className="h-3 w-3" />
+                        <Eye className="h-3 w-3" aria-hidden />
                         Published
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-2.5 py-0.5 text-xs font-semibold text-foreground">
-                        <EyeOff className="h-3 w-3" />
+                        <EyeOff className="h-3 w-3" aria-hidden />
                         Draft
                       </span>
                     )}
@@ -95,12 +95,26 @@ export default async function AdminPages() {
                     {new Date(page.updated_at).toLocaleDateString()}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                    <Link
-                      href={`/admin/pages/${page.id}`}
-                      className="text-foreground/75 hover:text-foreground"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Link>
+                    <span className="inline-flex items-center gap-3">
+                      {page.is_published && (
+                        <Link
+                          href={page.slug === "home" ? "/" : `/${page.slug}`}
+                          className="inline-flex items-center gap-1.5 text-foreground/75 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--pw-ring)"
+                          aria-label={`View ${page.title}`}
+                        >
+                          <ExternalLink className="h-4 w-4" aria-hidden />
+                          <span className="sr-only sm:not-sr-only sm:inline">View</span>
+                        </Link>
+                      )}
+                      <Link
+                        href={`/admin/pages/${page.id}`}
+                        className="inline-flex items-center gap-1.5 text-foreground/75 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--pw-ring)"
+                        aria-label={`Edit ${page.title}`}
+                      >
+                        <Edit className="h-4 w-4" aria-hidden />
+                        <span className="sr-only sm:not-sr-only sm:inline">Edit</span>
+                      </Link>
+                    </span>
                   </td>
                 </tr>
               ))}

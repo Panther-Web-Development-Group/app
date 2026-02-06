@@ -1,5 +1,5 @@
- "use client"
-import { useCallback, useMemo, type FC } from "react"
+"use client"
+import { useCallback, useMemo, useRef, useEffect, type FC } from "react"
 import type { ComboboxInputProps } from "./types"
 import { cn } from "@/lib/cn"
 import { useComboboxContext } from "./Context"
@@ -20,6 +20,7 @@ export const ComboboxInput: FC<ComboboxInputProps> = ({
     value,
     getOptionText,
     getOptionDisabled,
+    getOptionElement,
     placeholder,
     activeValue,
     setActiveValue,
@@ -55,13 +56,44 @@ export const ComboboxInput: FC<ComboboxInputProps> = ({
     [onFocus, setOpen]
   )
 
+  // Use a ref to track blur timeout and prevent clearing query when clicking options
+  const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const inputRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current)
+      }
+    }
+  }, [])
+
   const handleBlur = useCallback(
     (e: React.FocusEvent<HTMLInputElement>) => {
+      const relatedTarget = e.relatedTarget as HTMLElement | null
+      // Don't clear if focus is moving to an option or within the combobox
+      const isMovingToCombobox = relatedTarget?.closest(`[id="${listboxId}"]`) !== null
+      
       setOpen(false)
-      setQuery("")
+      
+      // Only clear query on blur if:
+      // 1. Not moving focus to combobox option
+      // 2. We have a selected value
+      // 3. The current query doesn't match what the user typed (they selected something)
+      // This prevents clearing while user is actively typing
+      if (!isMovingToCombobox && value && query.length > 0) {
+        const selectedText = getOptionText(value) ?? value
+        // Only clear if query doesn't match selected value (meaning user selected, not typing)
+        if (query !== selectedText) {
+          blurTimeoutRef.current = setTimeout(() => {
+            setQuery("")
+          }, 800)
+        }
+      }
+      
       onBlur?.(e)
     },
-    [onBlur, setOpen, setQuery]
+    [getOptionText, listboxId, onBlur, query, setOpen, setQuery, value]
   )
 
   const handleKeyDown = useCallback(
@@ -69,22 +101,61 @@ export const ComboboxInput: FC<ComboboxInputProps> = ({
       switch (e.key) {
         case "ArrowDown": {
           e.preventDefault()
-          if (!open) setOpen(true)
+          if (!open) {
+            setOpen(true)
+            return
+          }
           const visible = getVisibleValues()
           if (visible.length === 0) break
           const currentIndex = activeValue ? visible.indexOf(activeValue) : -1
-          const next = visible[Math.min(currentIndex + 1, visible.length - 1)]
-          if (next) setActiveValue(next)
+          const nextIndex = currentIndex < visible.length - 1 ? currentIndex + 1 : 0
+          const next = visible[nextIndex]
+          if (next) {
+            setActiveValue(next)
+            // Scroll into view
+            if (getOptionElement) {
+              const nextElement = getOptionElement(next)
+              nextElement?.scrollIntoView({ block: "nearest", behavior: "smooth" })
+            }
+          }
           break
         }
         case "ArrowUp": {
           e.preventDefault()
-          if (!open) setOpen(true)
+          if (!open) {
+            setOpen(true)
+            return
+          }
           const visible = getVisibleValues()
           if (visible.length === 0) break
           const currentIndex = activeValue ? visible.indexOf(activeValue) : visible.length
-          const next = visible[Math.max(currentIndex - 1, 0)]
-          if (next) setActiveValue(next)
+          const nextIndex = currentIndex > 0 ? currentIndex - 1 : visible.length - 1
+          const next = visible[nextIndex]
+          if (next) {
+            setActiveValue(next)
+            // Scroll into view
+            if (getOptionElement) {
+              const nextElement = getOptionElement(next)
+              nextElement?.scrollIntoView({ block: "nearest", behavior: "smooth" })
+            }
+          }
+          break
+        }
+        case "Home":
+        case "End": {
+          if (open) {
+            e.preventDefault()
+            const visible = getVisibleValues()
+            if (visible.length === 0) break
+            const targetValue = e.key === "Home" ? visible[0] : visible[visible.length - 1]
+            if (targetValue) {
+              setActiveValue(targetValue)
+              if (getOptionElement) {
+                const targetElement = getOptionElement(targetValue)
+                targetElement?.scrollIntoView({ block: "nearest", behavior: "smooth" })
+              }
+            }
+          }
           break
         }
         case "Enter": {
@@ -109,6 +180,7 @@ export const ComboboxInput: FC<ComboboxInputProps> = ({
     [
       activeValue,
       getOptionDisabled,
+      getOptionElement,
       getVisibleValues,
       onKeyDown,
       open,
@@ -125,6 +197,9 @@ export const ComboboxInput: FC<ComboboxInputProps> = ({
   return (
     <input
       {...props}
+      ref={(el) => {
+        inputRef.current = el
+      }}
       id={inputId}
       role="combobox"
       aria-autocomplete="list"
@@ -140,9 +215,12 @@ export const ComboboxInput: FC<ComboboxInputProps> = ({
       onKeyDown={handleKeyDown}
       className={cn(
         "h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none",
-        "transition-colors",
-        "focus-visible:ring-2 focus-visible:ring-(--pw-ring)",
-        disabledCtx ? "cursor-not-allowed opacity-60" : "hover:bg-background/15",
+        "transition-all duration-200",
+        "focus-visible:ring-2 focus-visible:ring-(--pw-ring) focus-visible:ring-offset-2",
+        disabledCtx
+          ? "cursor-not-allowed opacity-60"
+          : "hover:bg-background/15 hover:border-(--pw-border)/80 active:bg-background/20",
+        open && "border-(--pw-border)/80",
         className
       )}
     />

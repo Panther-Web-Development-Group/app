@@ -1,4 +1,4 @@
- "use client"
+"use client"
 import {
   useCallback,
   useEffect,
@@ -76,16 +76,21 @@ const ComboboxRoot: FC<PropsWithChildren<ComboboxProps>> = ({
 
   const orderRef = useRef(0)
   const [optionsMap, setOptionsMap] = useState<Map<string, OptionRecord>>(() => new Map())
+  const optionElementsRef = useRef<Map<string, HTMLElement | null>>(new Map())
 
-  const registerOption = useCallback((optValue: string, data: { text: string; disabled?: boolean }) => {
-    setOptionsMap((prev) => {
-      const next = new Map(prev)
-      const existing = next.get(optValue)
-      const order = existing?.order ?? (orderRef.current += 1)
-      next.set(optValue, { value: optValue, text: data.text, disabled: data.disabled, order })
-      return next
-    })
-  }, [])
+  const registerOption = useCallback(
+    (optValue: string, data: { text: string; disabled?: boolean }, element: HTMLElement | null) => {
+      setOptionsMap((prev) => {
+        const next = new Map(prev)
+        const existing = next.get(optValue)
+        const order = existing?.order ?? (orderRef.current += 1)
+        next.set(optValue, { value: optValue, text: data.text, disabled: data.disabled, order })
+        return next
+      })
+      optionElementsRef.current.set(optValue, element)
+    },
+    []
+  )
 
   const unregisterOption = useCallback((optValue: string) => {
     setOptionsMap((prev) => {
@@ -94,6 +99,7 @@ const ComboboxRoot: FC<PropsWithChildren<ComboboxProps>> = ({
       next.delete(optValue)
       return next
     })
+    optionElementsRef.current.delete(optValue)
   }, [])
 
   const getOptionText = useCallback(
@@ -109,6 +115,10 @@ const ComboboxRoot: FC<PropsWithChildren<ComboboxProps>> = ({
     },
     [optionsMap]
   )
+
+  const getOptionElement = useCallback((optValue: string) => {
+    return optionElementsRef.current.get(optValue)
+  }, [])
 
   const visibleValues = useMemo(() => {
     const q = query.trim()
@@ -135,12 +145,15 @@ const ComboboxRoot: FC<PropsWithChildren<ComboboxProps>> = ({
         return
       }
 
-      const visible = getVisibleValues()
-      const first = visible[0]
-      if (!first) return
-      if (!activeValue || !visible.includes(activeValue)) {
-        setActiveValue(first)
-      }
+      // Use setTimeout to avoid synchronous setState
+      setTimeout(() => {
+        const visible = getVisibleValues()
+        const first = visible[0]
+        if (!first) return
+        if (!activeValue || !visible.includes(activeValue)) {
+          setActiveValue(first)
+        }
+      }, 0)
     },
     [activeValue, getVisibleValues]
   )
@@ -202,6 +215,7 @@ const ComboboxRoot: FC<PropsWithChildren<ComboboxProps>> = ({
       unregisterOption,
       getOptionText,
       getOptionDisabled,
+      getOptionElement,
       getVisibleValues,
       getOptionId,
       inputId,
@@ -224,12 +238,16 @@ const ComboboxRoot: FC<PropsWithChildren<ComboboxProps>> = ({
       unregisterOption,
       getOptionText,
       getOptionDisabled,
+      getOptionElement,
       getVisibleValues,
       getOptionId,
       inputId,
       listboxId,
     ]
   )
+
+  // Ensure we always have a value for form submission (use defaultValue if value is undefined)
+  const formValue = value ?? defaultValue ?? ""
 
   return (
     <div
@@ -238,7 +256,7 @@ const ComboboxRoot: FC<PropsWithChildren<ComboboxProps>> = ({
       className={cn("relative", className)}
       data-disabled={disabled ? "" : undefined}
     >
-      {!disabled && name && value ? <input type="hidden" name={name} value={value} /> : null}
+      {!disabled && name && formValue ? <input type="hidden" name={name} value={formValue} /> : null}
       <ComboboxProvider value={ctx}>{children}</ComboboxProvider>
     </div>
   )

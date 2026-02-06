@@ -11,9 +11,12 @@ import { Button } from "@/app/components/Button"
 import { Checkbox } from "@/app/components/Form/Checkbox"
 import { TextAreaGroup } from "@/app/components/Form/TextAreaGroup"
 import { InputGroup } from "@/app/components/Form/InputGroup"
+import { TitleWithSlug } from "./TitleWithSlug"
+import { NumberInput } from "@/app/components/Form/Number"
 import { RadioGroup } from "@/app/components/Form/RadioGroup"
 import { Select } from "@/app/components/Form/Select"
 import { SortableList } from "@/app/components/SortableList"
+import { ImageSelector } from "../ImageSelector"
 
 type PageRenderMode = "whole" | "sections"
 type PageSectionWidth = "full" | "partial"
@@ -289,16 +292,6 @@ export function EditPageForm({
     setEditorState(json)
   }
 
-  // Generate slug from title
-  const generateSlug = (text: string) => {
-    return text
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, "")
-      .replace(/[\s_-]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-  }
-
   const handleSavePage = async (publish: boolean) => {
     if (!title.trim() || !slug.trim()) {
       setError("Title and slug are required")
@@ -464,10 +457,10 @@ export function EditPageForm({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
+          <h2 className="text-3xl font-bold text-foreground">
             {isNew ? "Create Page" : "Edit Page"}
           </h2>
-          <p className="mt-2 text-zinc-600 dark:text-zinc-400">
+          <p className="mt-2 text-foreground/70">
             {renderMode === "sections"
               ? "Build this page from sections (full + partial widths)"
               : "Edit your page content"}
@@ -475,7 +468,7 @@ export function EditPageForm({
         </div>
         <Link
           href="/admin/pages"
-          className="flex items-center gap-2 rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          className="flex items-center gap-2 rounded-lg border border-(--pw-border) px-4 py-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-background/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--pw-ring)"
         >
           <X className="h-4 w-4" />
           Back
@@ -488,51 +481,20 @@ export function EditPageForm({
         </div>
       )}
 
-      <div className="space-y-6 rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="grid gap-4 md:grid-cols-2">
-          <InputGroup
-            required
-            label="Title"
-            value={title}
-            onChange={(e) => {
-              const nextTitle = e.target.value
-              setTitle(nextTitle)
-              if (slugLocked) setSlug(generateSlug(nextTitle))
-            }}
-            placeholder="Page title"
-            labelClassName="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
-            inputClassName="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder-zinc-500 dark:focus:border-zinc-600 dark:focus:ring-zinc-600"
-          />
-
-          <InputGroup
-            required
-            label="Slug"
-            value={slug}
-            readOnly={slugLocked}
-            onChange={(e) => {
-              if (slugLocked) return
-              setSlug(e.target.value)
-            }}
-            placeholder="page-slug"
-            labelClassName="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
-            inputClassName="block w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 read-only:bg-zinc-50 read-only:text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder-zinc-500 dark:focus:border-zinc-600 dark:focus:ring-zinc-600 dark:read-only:bg-zinc-950 dark:read-only:text-zinc-400"
-          />
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Checkbox
-            checked={slugLocked}
-            onCheckedChange={(next) => {
-              setSlugLocked(next)
-              if (next) setSlug(generateSlug(title))
-            }}
-            label={
-              <span className="text-sm text-zinc-700 dark:text-zinc-300">
-                Auto-generate slug from title
-              </span>
-            }
-          />
-        </div>
+      <div className="space-y-6 rounded-lg border border-(--pw-border) bg-background p-6">
+        <TitleWithSlug
+          title={title}
+          slug={slug}
+          slugLocked={slugLocked}
+          onTitleChange={setTitle}
+          onSlugChange={setSlug}
+          onSlugLockedChange={setSlugLocked}
+          titlePlaceholder="Page title"
+          slugPlaceholder="page-slug"
+          titleLabel="Title"
+          slugLabel="Slug"
+          required
+        />
 
         <div>
           <TextAreaGroup
@@ -542,17 +504,17 @@ export function EditPageForm({
             placeholder="Brief description of the page"
             label="Summary"
             rows={3}
-            textAreaClassName="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder-zinc-500 dark:focus:border-zinc-600 dark:focus:ring-zinc-600"
+            textAreaClassName="rounded-lg border border-(--pw-border) bg-background px-3 py-2 text-foreground placeholder-foreground/50 outline-none focus:ring-2 focus:ring-(--pw-ring)"
           />
         </div>
 
-        <div className="space-y-3 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="space-y-3 rounded-lg border border-(--pw-border) bg-secondary/20 p-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+              <div className="text-sm font-semibold text-foreground">
                 Page hero image
               </div>
-              <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+              <p className="mt-1 text-sm text-foreground/70">
                 Optional hero image shown at the top of the published page.
               </p>
             </div>
@@ -560,31 +522,32 @@ export function EditPageForm({
             <Checkbox
               checked={heroImageEnabled}
               onCheckedChange={setHeroImageEnabled}
-              label={<span className="text-sm text-zinc-700 dark:text-zinc-300">Enabled</span>}
+              label={<span className="text-sm text-foreground/80">Enabled</span>}
             />
           </div>
 
           {heroImageEnabled ? (
             <div className="grid gap-3 md:grid-cols-2">
               <div className="md:col-span-2">
-                <InputGroup
-                  label="Hero image URL"
-                  labelClassName="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
+                <label className="mb-1 block text-xs font-medium text-foreground/70">
+                  Hero image URL
+                </label>
+                <ImageSelector
                   value={heroImageUrl}
-                  onChange={(e) => setHeroImageUrl(e.target.value)}
-                  placeholder="https://…"
-                  inputClassName="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                  onValueChange={setHeroImageUrl}
+                  placeholder="Select a hero image"
+                  className="mt-1"
                 />
               </div>
 
               <div>
                 <InputGroup
                   label="Alt text (optional)"
-                  labelClassName="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
+                  labelClassName="mb-1 block text-xs font-medium text-foreground/70"
                   value={heroImageAlt}
                   onChange={(e) => setHeroImageAlt(e.target.value)}
                   placeholder="Describe the image"
-                  inputClassName="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                  inputClassName="w-full rounded-lg border border-(--pw-border) bg-background px-3 py-2 text-sm text-foreground"
                 />
               </div>
 
@@ -593,7 +556,7 @@ export function EditPageForm({
                   checked={heroConstrainToContainer}
                   onCheckedChange={setHeroConstrainToContainer}
                   label={
-                    <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                    <span className="text-sm text-foreground/80">
                       Constrain hero to content width
                     </span>
                   }
@@ -603,9 +566,9 @@ export function EditPageForm({
           ) : null}
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-(--pw-border) bg-secondary/20 p-4">
           <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label className="text-sm font-medium text-foreground/80">
               Mode
             </label>
             <RadioGroup
@@ -621,7 +584,7 @@ export function EditPageForm({
           <Checkbox
             checked={isPublished}
             onCheckedChange={setIsPublished}
-            label={<span className="text-sm text-zinc-700 dark:text-zinc-300">Published</span>}
+            label={<span className="text-sm text-foreground/80">Published</span>}
           />
         </div>
 
@@ -630,7 +593,7 @@ export function EditPageForm({
             <Editor
               label="Content"
               required
-              labelClassName="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              labelClassName="mb-2 block text-sm font-medium text-foreground/80"
               contentMinHeightClassName="min-h-[220px]"
               initialContent={editorState}
               onChange={handleEditorChange}
@@ -641,10 +604,10 @@ export function EditPageForm({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                <h3 className="text-sm font-semibold text-foreground">
                   Sections
                 </h3>
-                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                <p className="mt-1 text-sm text-foreground/70">
                   Full width sections span 12 columns. Partial sections use a 12-column grid.
                 </p>
               </div>
@@ -654,7 +617,7 @@ export function EditPageForm({
                   resetSectionDraft()
                   setSectionOrder((orderedSections.at(-1)?.order_index ?? 0) + 1)
                 }}
-                className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                className="inline-flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-foreground hover:opacity-90"
                 variant="ghost"
               >
                 <Plus className="h-4 w-4" />
@@ -663,7 +626,7 @@ export function EditPageForm({
             </div>
 
             {orderedSections.length === 0 ? (
-              <div className="rounded-lg border border-zinc-200 bg-white p-4 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
+              <div className="rounded-lg border border-(--pw-border) bg-background p-4 text-sm text-foreground/70">
                 No sections yet.
               </div>
             ) : (
@@ -671,19 +634,19 @@ export function EditPageForm({
                 items={orderedSections}
                 onReorder={handleReorderSections}
                 onReorderEnd={persistSectionOrder}
-                itemClassName="rounded-lg border border-zinc-200 bg-white p-4 pl-12 dark:border-zinc-800 dark:bg-zinc-950"
+                itemClassName="rounded-lg border border-(--pw-border) bg-background p-4 pl-12"
                 renderItem={(s) => (
                   <div className="flex items-center justify-between">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="rounded bg-zinc-100 px-2 py-0.5 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
+                        <span className="rounded bg-secondary/30 px-2 py-0.5 text-xs text-foreground/80">
                           {s.order_index}
                         </span>
-                        <span className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">
+                        <span className="truncate text-sm font-medium text-foreground">
                           {s.title || "Untitled section"}
                         </span>
                       </div>
-                      <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                      <div className="mt-1 text-xs text-foreground/60">
                         {s.width}
                         {s.width === "partial" && s.column_span
                           ? ` • span ${s.column_span}/12`
@@ -696,7 +659,7 @@ export function EditPageForm({
                       <Button
                         type="button"
                         onClick={() => startEditSection(s)}
-                        className="rounded-lg border border-zinc-200 p-2 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-900"
+                        className="rounded-lg border border-(--pw-border) p-2 text-foreground/80 hover:bg-background/10"
                         aria-label="Edit section"
                         variant="icon"
                       >
@@ -719,8 +682,8 @@ export function EditPageForm({
             )}
 
             {/* Section editor */}
-            <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-              <div className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+            <div className="rounded-lg border border-(--pw-border) bg-background p-4">
+              <div className="mb-3 text-sm font-semibold text-foreground">
                 {editingSectionId ? "Edit section" : "New section"}
               </div>
 
@@ -728,28 +691,28 @@ export function EditPageForm({
                 <div>
                 <InputGroup
                   label="Section title"
-                  labelClassName="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
+                  labelClassName="mb-1 block text-xs font-medium text-foreground/70"
                   value={sectionTitle}
                   onChange={(e) => setSectionTitle(e.target.value)}
                   placeholder="e.g. Hero"
-                  inputClassName="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                  inputClassName="w-full rounded-lg border border-(--pw-border) bg-background px-3 py-2 text-sm text-foreground"
                 />
                 </div>
 
                 <div>
                 <InputGroup
                   label="Icon (lucide name)"
-                  labelClassName="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
+                  labelClassName="mb-1 block text-xs font-medium text-foreground/70"
                   value={sectionIcon}
                   onChange={(e) => setSectionIcon(e.target.value)}
                   placeholder="e.g. home, info, sparkles"
-                  inputClassName="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                  inputClassName="w-full rounded-lg border border-(--pw-border) bg-background px-3 py-2 text-sm text-foreground"
                 />
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-12 md:col-span-2">
                   <div className="sm:col-span-6">
-                    <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                    <label className="mb-1 block text-xs font-medium text-foreground/70">
                       Width
                     </label>
                     <RadioGroup
@@ -762,32 +725,36 @@ export function EditPageForm({
                     </RadioGroup>
                   </div>
                   <div className="sm:col-span-3">
-                    <InputGroup
-                      label="Span"
-                      labelClassName="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
-                      type="number"
+                    <label htmlFor="edit-page-section-span" className="mb-1 block text-xs font-medium text-foreground/70">
+                      Span
+                    </label>
+                    <NumberInput
+                      id="edit-page-section-span"
                       min={1}
                       max={12}
                       value={sectionSpan}
-                      onChange={(e) => setSectionSpan(Number(e.target.value))}
+                      onValueChange={(v) => setSectionSpan(v ?? 6)}
                       disabled={sectionWidth !== "partial"}
-                      inputClassName="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                      className="mt-1"
                     />
                   </div>
                   <div className="sm:col-span-3">
-                    <InputGroup
-                      label="Order"
-                      labelClassName="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
-                      type="number"
+                    <label htmlFor="edit-page-section-order" className="mb-1 block text-xs font-medium text-foreground/70">
+                      Order
+                    </label>
+                    <NumberInput
+                      id="edit-page-section-order"
                       value={sectionOrder}
-                      onChange={(e) => setSectionOrder(Number(e.target.value))}
-                      inputClassName="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                      onValueChange={(v) => setSectionOrder(v ?? 0)}
+                      className="mt-1"
+                      min={0}
+                      max={100}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                  <label className="mb-1 block text-xs font-medium text-foreground/70">
                     Content type
                   </label>
                   <Select
@@ -796,7 +763,7 @@ export function EditPageForm({
                       setSectionType(v as "hero" | "card" | "richText" | "custom")
                     }
                   >
-                    <Select.Trigger className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50" />
+                    <Select.Trigger className="mt-1 w-full rounded-lg border border-(--pw-border) bg-background px-3 py-2 text-sm text-foreground" />
                     <Select.Content>
                       <Select.Option value="hero">Hero</Select.Option>
                       <Select.Option value="card">Card</Select.Option>
@@ -813,19 +780,19 @@ export function EditPageForm({
                     <div>
                       <InputGroup
                         label="Headline"
-                        labelClassName="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
+                        labelClassName="mb-1 block text-xs font-medium text-foreground/70"
                         value={heroHeadline}
                         onChange={(e) => setHeroHeadline(e.target.value)}
-                        inputClassName="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                        inputClassName="w-full rounded-lg border border-(--pw-border) bg-background px-3 py-2 text-sm text-foreground"
                       />
                     </div>
                     <div>
                       <InputGroup
                         label="Subheadline"
-                        labelClassName="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
+                        labelClassName="mb-1 block text-xs font-medium text-foreground/70"
                         value={heroSubheadline}
                         onChange={(e) => setHeroSubheadline(e.target.value)}
-                        inputClassName="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                        inputClassName="w-full rounded-lg border border-(--pw-border) bg-background px-3 py-2 text-sm text-foreground"
                       />
                     </div>
                   </div>
@@ -836,20 +803,20 @@ export function EditPageForm({
                     <div>
                       <InputGroup
                         label="Card title"
-                        labelClassName="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
+                        labelClassName="mb-1 block text-xs font-medium text-foreground/70"
                         value={cardTitle}
                         onChange={(e) => setCardTitle(e.target.value)}
-                        inputClassName="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                        inputClassName="w-full rounded-lg border border-(--pw-border) bg-background px-3 py-2 text-sm text-foreground"
                       />
                     </div>
                     <div>
                       <TextAreaGroup
                         label="Body"
-                        labelClassName="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
+                        labelClassName="mb-1 block text-xs font-medium text-foreground/70"
                         value={cardBody}
                         onChange={(e) => setCardBody(e.target.value)}
                         rows={3}
-                        textAreaClassName="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                        textAreaClassName="w-full rounded-lg border border-(--pw-border) bg-background px-3 py-2 text-sm text-foreground"
                       />
                     </div>
                   </div>
@@ -860,13 +827,13 @@ export function EditPageForm({
                     <Editor
                       resetKey={`section-richText-${editingSectionId ?? "new"}`}
                       label="Content"
-                      labelClassName="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
+                      labelClassName="mb-1 block text-xs font-medium text-foreground/70"
                       initialContent={richHtml}
                       onChange={(_state, _editor, html) => setRichHtml(html)}
                       placeholder="Write rich text content here…"
-                      editorContainerClassName="border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900"
+                      editorContainerClassName="border-(--pw-border) bg-background/10"
                       contentMinHeightClassName="min-h-[144px]"
-                      contentClassName="px-3 py-2 text-sm text-zinc-900 dark:text-zinc-50 prose-zinc dark:prose-invert"
+                      contentClassName="px-3 py-2 text-sm text-foreground prose prose-invert"
                     />
                   </div>
                 ) : null}
@@ -874,14 +841,14 @@ export function EditPageForm({
                 <div>
                   <TextAreaGroup
                     label="Thumbnails (JSON array)"
-                    labelClassName="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
+                    labelClassName="mb-1 block text-xs font-medium text-foreground/70"
                     value={thumbnailsJson}
                     onChange={(e) => setThumbnailsJson(e.target.value)}
                     rows={4}
                     placeholder='[{"src":"https://…","caption":"…","alt":"…"}]'
-                    textAreaClassName="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 font-mono text-xs text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                    textAreaClassName="w-full rounded-lg border border-(--pw-border) bg-background px-3 py-2 font-mono text-xs text-foreground"
                     description="Optional. Use `src` (or `url`) plus optional `caption` and `alt`."
-                    descriptionClassName="mt-1 text-xs text-zinc-500 dark:text-zinc-400"
+                    descriptionClassName="mt-1 text-xs text-foreground/60"
                     collapseOnBlur={false}
                   />
                 </div>
@@ -890,12 +857,12 @@ export function EditPageForm({
                   <div>
                     <TextAreaGroup
                       label="JSON"
-                      labelClassName="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
+                      labelClassName="mb-1 block text-xs font-medium text-foreground/70"
                       value={customJson}
                       onChange={(e) => setCustomJson(e.target.value)}
                       rows={6}
                       placeholder='{"type":"hero","headline":"Welcome"}'
-                      textAreaClassName="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 font-mono text-xs text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
+                      textAreaClassName="w-full rounded-lg border border-(--pw-border) bg-background px-3 py-2 font-mono text-xs text-foreground"
                     />
                   </div>
                 ) : null}
@@ -906,7 +873,7 @@ export function EditPageForm({
                   type="button"
                   onClick={handleSaveSection}
                   disabled={saving}
-                  className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                  className="inline-flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-foreground hover:opacity-90 disabled:opacity-60"
                   variant="ghost"
                 >
                   <Save className="h-4 w-4" />
@@ -915,7 +882,7 @@ export function EditPageForm({
                 <Button
                   type="button"
                   onClick={resetSectionDraft}
-                  className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900"
+                  className="inline-flex items-center gap-2 rounded-lg border border-(--pw-border) bg-background px-3 py-2 text-sm font-medium text-foreground/80 hover:bg-background/10"
                   variant="ghost"
                 >
                   <X className="h-4 w-4" />
@@ -926,12 +893,12 @@ export function EditPageForm({
           </div>
         )}
 
-        <div className="flex items-center gap-4 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+        <div className="flex items-center gap-4 pt-4 border-t border-(--pw-border)">
           <Button
             type="button"
             onClick={() => handleSavePage(false)}
             disabled={saving}
-            className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-accent-foreground transition-colors hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-(--pw-ring) disabled:cursor-not-allowed disabled:opacity-60"
             variant="ghost"
           >
             <Save className="h-4 w-4" />

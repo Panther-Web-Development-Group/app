@@ -1,7 +1,13 @@
 import { cn } from "@/lib/cn"
 import { getIcon } from "@/lib/icons/iconMap"
 import { LexicalRenderer } from "@/app/components/LexicalRenderer"
+import { CardGroup } from "@/app/components/Card"
 import type { PageSection } from "@/lib/supabase/server/sections"
+import type { 
+  PageSectionObject, 
+  PageSectionType,
+  PageSectionPayloads 
+} from "@/lib/supabase/structures"
 
 type SectionThumbnail = {
   src: string
@@ -108,6 +114,158 @@ function renderSectionBody(content: unknown) {
     )
   }
 
+  // Type-safe section rendering
+  function renderSection<T extends PageSectionType>(
+    section: PageSectionObject<T>
+  ) {
+    const { type, payload } = section
+
+    switch (type) {
+      case "hero": {
+        const heroPayload = payload as PageSectionPayloads["hero"]
+        const thumbnails = heroPayload.thumbnails ?? heroPayload.thumbnail
+        return (
+          <div className="space-y-3">
+            <h2 className="text-[2em] font-bold tracking-tight text-foreground">
+              {heroPayload.headline || "Hero"}
+            </h2>
+            {heroPayload.subheadline ? (
+              <p className="text-[1.5em] leading-snug text-foreground/75">
+                {heroPayload.subheadline}
+              </p>
+            ) : null}
+            {heroPayload.cta ? (
+              <div className="mt-4">
+                <a
+                  href={heroPayload.cta.url}
+                  className="inline-flex items-center gap-2 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition-colors hover:opacity-90"
+                >
+                  {heroPayload.cta.icon}
+                  {heroPayload.cta.label}
+                </a>
+              </div>
+            ) : null}
+            {renderThumbnails(thumbnails)}
+          </div>
+        )
+      }
+      case "card": {
+        const cardPayload = payload as PageSectionPayloads["card"]
+        const thumbnails = cardPayload.thumbnails ?? cardPayload.thumbnail
+        
+        // Convert thumbnails to image format
+        const images = thumbnails
+          ? (Array.isArray(thumbnails) ? thumbnails : [thumbnails])
+              .map((thumb) => {
+                if (typeof thumb === "string") {
+                  return { src: thumb, alt: cardPayload.title || "" }
+                }
+                return null
+              })
+              .filter((img): img is { src: string; alt: string } => img !== null)
+          : undefined
+        
+        const image = images && images.length === 1 ? images[0] : undefined
+        const multipleImages = images && images.length > 1 ? images : undefined
+
+        return (
+          <CardGroup
+            cards={[
+              {
+                title: cardPayload.title,
+                body: cardPayload.body,
+                image: image,
+                images: multipleImages,
+                link: cardPayload.link_href
+                  ? {
+                      href: cardPayload.link_href,
+                      label: "Learn more",
+                    }
+                  : undefined,
+              },
+            ]}
+            columns={1}
+            gap="md"
+          />
+        )
+      }
+      case "richText": {
+        const richTextPayload = payload as PageSectionPayloads["richText"]
+        const html = sanitizeHtml(richTextPayload.html)
+        return (
+          <div className="space-y-6">
+            <div
+              className="prose prose-zinc dark:prose-invert max-w-none"
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
+          </div>
+        )
+      }
+      case "gallery": {
+        const galleryPayload = payload as PageSectionPayloads["gallery"]
+        return (
+          <div className="space-y-4">
+            <p className="text-sm text-foreground/70">
+              Gallery: {galleryPayload.gallery_id}
+              {galleryPayload.layout && ` (${galleryPayload.layout})`}
+            </p>
+            {/* Gallery component would be rendered here */}
+          </div>
+        )
+      }
+      case "slideshow": {
+        const slideshowPayload = payload as PageSectionPayloads["slideshow"]
+        return (
+          <div className="space-y-4">
+            <p className="text-sm text-foreground/70">
+              Slideshow: {slideshowPayload.slideshow_id}
+            </p>
+            {/* Slideshow component would be rendered here */}
+          </div>
+        )
+      }
+      case "events": {
+        const eventsPayload = payload as PageSectionPayloads["events"]
+        return (
+          <div className="space-y-4">
+            <p className="text-sm text-foreground/70">
+              Events list
+              {eventsPayload.category_id && ` (category: ${eventsPayload.category_id})`}
+              {eventsPayload.limit && ` (limit: ${eventsPayload.limit})`}
+            </p>
+            {/* Events component would be rendered here */}
+          </div>
+        )
+      }
+      case "custom": {
+        const customPayload = payload as PageSectionPayloads["custom"]
+        const thumbnails = (customPayload as any).thumbnails ?? (customPayload as any).thumbnail
+        return (
+          <div className="space-y-6">
+            <pre className="whitespace-pre-wrap wrap-break-word rounded-lg border border-(--pw-border) bg-background/15 p-4 text-xs text-foreground/80">
+              {JSON.stringify(customPayload, null, 2)}
+            </pre>
+            {renderThumbnails(thumbnails)}
+          </div>
+        )
+      }
+    }
+  }
+
+  // Try to parse as typed section object
+  if (typeof content === "object" && content !== null) {
+    const obj = content as Record<string, unknown>
+    if ("type" in obj && typeof obj.type === "string") {
+      const section = content as PageSectionObject<PageSectionType>
+      try {
+        return renderSection(section)
+      } catch {
+        // Fall through to legacy handling
+      }
+    }
+  }
+
+  // Legacy format handling (backward compatibility)
   const sectionTypes = {
     hero: (obj: Record<string, unknown>) => {
       const thumbnails = obj.thumbnails ?? obj.thumbnail
@@ -161,8 +319,8 @@ function renderSectionBody(content: unknown) {
     }
   }
 
-  // Seeded section formats
-  if (typeof content === "object") {
+  // Legacy section formats
+  if (typeof content === "object" && content !== null) {
     const { type, ...rest } = content as Record<string, unknown>
     const renderFn = sectionTypes[type as keyof typeof sectionTypes]
     if (renderFn) return renderFn(rest)

@@ -1,5 +1,5 @@
- "use client"
-import { useCallback, useEffect, useMemo, type FC } from "react"
+"use client"
+import { useCallback, useEffect, useMemo, useRef, type FC } from "react"
 import type { ComboboxOptionProps } from "./types"
 import { cn } from "@/lib/cn"
 import { useComboboxContext } from "./Context"
@@ -26,6 +26,7 @@ export const ComboboxOption: FC<ComboboxOptionProps> = ({
     unregisterOption,
     getOptionText,
     getOptionDisabled,
+    getOptionElement,
     value: selectedValue,
     setValue,
     setOpen,
@@ -38,14 +39,16 @@ export const ComboboxOption: FC<ComboboxOptionProps> = ({
   } = useComboboxContext()
 
   const text = useMemo(() => textValue ?? defaultTextFromChildren(children, value), [children, textValue, value])
+  const optionRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    registerOption(value, { text, disabled: disabledProp })
+    registerOption(value, { text, disabled: disabledProp }, optionRef.current)
     return () => unregisterOption(value)
   }, [disabledProp, registerOption, text, unregisterOption, value])
 
   const disabled = disabledCtx || getOptionDisabled(value) || disabledProp
   const isSelected = selectedValue === value
+  const isActive = activeValue === value
 
   const matches = useMemo(() => {
     const q = query.trim()
@@ -59,11 +62,20 @@ export const ComboboxOption: FC<ComboboxOptionProps> = ({
   }, [filter, getOptionText, query, text, value])
 
   const optionId = getOptionId(value)
-  const isActive = activeValue === value
+
+  // Focus this option when it becomes active
+  useEffect(() => {
+    if (isActive && optionRef.current) {
+      // Don't focus on mouse hover, only keyboard navigation
+      // The scrollIntoView in Input.tsx handles keyboard navigation
+    }
+  }, [isActive])
 
   const handleMouseEnter = useCallback(() => {
-    setActiveValue(value)
-  }, [setActiveValue, value])
+    if (!disabled) {
+      setActiveValue(value)
+    }
+  }, [disabled, setActiveValue, value])
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     // Keep focus on the input so blur doesn't close before click.
@@ -75,37 +87,66 @@ export const ComboboxOption: FC<ComboboxOptionProps> = ({
     setValue(value)
     setActiveValue(value)
     setOpen(false)
-    if (clearOnSelect) setQuery("")
+    if (clearOnSelect) {
+      // Small delay to ensure the value is set before clearing query
+      setTimeout(() => setQuery(""), 0)
+    }
 
     const input = document.getElementById(inputId) as HTMLInputElement | null
-    input?.focus()
+    // Delay focus to allow the click to complete
+    setTimeout(() => input?.focus(), 0)
   }, [clearOnSelect, disabled, inputId, setActiveValue, setOpen, setQuery, setValue, value])
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (disabled) return
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault()
+        setValue(value)
+        setActiveValue(value)
+        setOpen(false)
+        if (clearOnSelect) {
+          setTimeout(() => setQuery(""), 0)
+        }
+        const input = document.getElementById(inputId) as HTMLInputElement | null
+        setTimeout(() => input?.focus(), 0)
+      }
+    },
+    [clearOnSelect, disabled, inputId, setActiveValue, setOpen, setQuery, setValue, value]
+  )
 
   if (!matches) return null
 
   return (
     <div
       {...props}
+      ref={optionRef}
       id={optionId}
       role="option"
       aria-selected={isSelected}
       data-active={isActive ? "" : undefined}
       data-disabled={disabled ? "" : undefined}
+      data-value={value}
+      tabIndex={-1}
       onMouseEnter={handleMouseEnter}
       onMouseDown={handleMouseDown}
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
       className={cn(
-        "flex w-full cursor-pointer select-none items-center gap-2 rounded-md px-2 py-2 text-left text-sm text-foreground/90",
-        disabled ? "cursor-not-allowed opacity-60" : "hover:bg-background/20",
-        isActive ? "bg-background/20" : "",
+        "flex w-full cursor-pointer select-none items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-foreground transition-colors",
+        "outline-none focus-visible:ring-2 focus-visible:ring-(--pw-ring) focus-visible:ring-offset-1",
+        disabled
+          ? "cursor-not-allowed opacity-50"
+          : "hover:bg-background/20 active:bg-background/30",
+        isSelected && "bg-background/15 font-medium",
+        isActive && !isSelected && "bg-background/10",
         className
       )}
     >
-      <span className="flex h-4 w-4 items-center justify-center text-foreground/70">
+      <span className="flex h-4 w-4 shrink-0 items-center justify-center text-foreground/70">
         {isSelected ? <CheckIcon className="h-4 w-4" /> : null}
       </span>
       <span className="min-w-0 flex-1 truncate">{children}</span>
     </div>
   )
 }
-
