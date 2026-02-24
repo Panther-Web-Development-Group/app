@@ -1,8 +1,12 @@
 "use client"
 import { useEffect, useRef, type FC } from "react"
+import { createPortal } from "react-dom"
 import type { ComboboxContentProps } from "./types"
 import { cn } from "@/lib/cn"
 import { useComboboxContext } from "./Context"
+
+const VIEWPORT_PAD = 8
+const GAP = 4
 
 export const ComboboxContent: FC<ComboboxContentProps> = ({
   className,
@@ -11,11 +15,11 @@ export const ComboboxContent: FC<ComboboxContentProps> = ({
   maxHeight = "16rem",
   ...props
 }) => {
-  const { open, listboxId, inputId, activeValue, getOptionId, getOptionElement } = useComboboxContext()
+  const { open, listboxId, inputId, activeValue, getOptionElement } = useComboboxContext()
   const contentRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
-  // Position calculation
+  // Position calculation - use fixed positioning so dropdown escapes overflow containers (e.g. RTE toolbar)
   useEffect(() => {
     if (!open || !contentRef.current) return
 
@@ -27,35 +31,35 @@ export const ComboboxContent: FC<ComboboxContentProps> = ({
     const viewportHeight = window.innerHeight
     const viewportWidth = window.innerWidth
     const contentHeight = content.offsetHeight
-    const spaceBelow = viewportHeight - inputRect.bottom
-    const spaceAbove = inputRect.top
+    const spaceBelow = viewportHeight - VIEWPORT_PAD - inputRect.bottom
+    const spaceAbove = inputRect.top - VIEWPORT_PAD
+    const showAbove =
+      position === "top" || (position === "auto" && spaceBelow < contentHeight && spaceAbove > spaceBelow)
 
-    // Reset positioning
+    content.style.position = "fixed"
+    content.style.width = `${inputRect.width}px`
+    content.style.minWidth = ""
+    content.style.maxWidth = `${viewportWidth - 2 * VIEWPORT_PAD}px`
     content.style.top = ""
     content.style.bottom = ""
     content.style.left = ""
     content.style.right = ""
     content.style.transform = ""
 
-    // Horizontal positioning - ensure it stays within viewport
-    if (inputRect.left + inputRect.width > viewportWidth - 20) {
-      content.style.right = "0"
+    if (showAbove) {
+      content.style.bottom = `${viewportHeight - inputRect.top + GAP}px`
+      content.style.top = "auto"
     } else {
-      content.style.left = "0"
+      content.style.top = `${inputRect.bottom + GAP}px`
+      content.style.bottom = "auto"
     }
 
-    // Vertical positioning
-    if (position === "top" || (position === "auto" && spaceBelow < contentHeight && spaceAbove > spaceBelow)) {
-      // Position above
-      content.style.bottom = "100%"
-      content.style.marginBottom = "0.25rem"
-      content.style.marginTop = ""
-    } else {
-      // Position below (default)
-      content.style.top = "100%"
-      content.style.marginTop = "0.25rem"
-      content.style.marginBottom = ""
+    let left = inputRect.left
+    if (left + inputRect.width > viewportWidth - VIEWPORT_PAD) {
+      left = viewportWidth - inputRect.width - VIEWPORT_PAD
     }
+    left = Math.max(VIEWPORT_PAD, left)
+    content.style.left = `${left}px`
   }, [open, inputId, position])
 
   // Scroll active option into view
@@ -81,7 +85,7 @@ export const ComboboxContent: FC<ComboboxContentProps> = ({
 
   const maxHeightValue = typeof maxHeight === "number" ? `${maxHeight}px` : maxHeight
 
-  return (
+  const contentEl = (
     <div
       {...props}
       ref={contentRef}
@@ -89,7 +93,7 @@ export const ComboboxContent: FC<ComboboxContentProps> = ({
       role="listbox"
       aria-labelledby={inputId}
       className={cn(
-        "absolute z-50 w-full overflow-hidden rounded-lg border border-(--pw-border) bg-background shadow-lg",
+        "z-9999 overflow-hidden rounded-lg border border-(--pw-border) bg-background shadow-lg",
         "transition-all duration-200 ease-out",
         open
           ? "pointer-events-auto opacity-100 scale-100"
@@ -107,4 +111,7 @@ export const ComboboxContent: FC<ComboboxContentProps> = ({
       </div>
     </div>
   )
+
+  if (typeof document === "undefined") return null
+  return createPortal(contentEl, document.body)
 }

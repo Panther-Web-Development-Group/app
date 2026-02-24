@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Editor, getEditorStateAsJSON } from "@/app/components/Form/Editor"
+import { RTERoot } from "@/app/components/Form/RTE"
+import { getEditorStateAsJSON } from "@/app/components/Form/RTE/actions/editorState"
 import { EditorState, LexicalEditor } from "lexical"
 import { Eye, Pencil, Plus, Save, Trash2, X } from "lucide-react"
 import type { Json } from "@/lib/supabase/types"
@@ -16,7 +17,7 @@ import { NumberInput } from "@/app/components/Form/Number"
 import { RadioGroup } from "@/app/components/Form/RadioGroup"
 import { Select } from "@/app/components/Form/Select"
 import { SortableList } from "@/app/components/SortableList"
-import { ImageSelector } from "../ImageSelector"
+import { ImageSelector } from "@/app/(admin)/admin/ImageSelector"
 
 type PageRenderMode = "whole" | "sections"
 type PageSectionWidth = "full" | "partial"
@@ -290,6 +291,14 @@ export function EditPageForm({
     editorRef.current = editor
     const json = await getEditorStateAsJSON(editor)
     setEditorState(json)
+  }
+
+  const handleSectionRichTextChange = async (
+    _state: EditorState,
+    _editor: LexicalEditor,
+    html: string,
+  ) => {
+    setRichHtml(html)
   }
 
   const handleSavePage = async (publish: boolean) => {
@@ -590,7 +599,7 @@ export function EditPageForm({
 
         {renderMode === "whole" ? (
           <div>
-            <Editor
+            <RTERoot
               label="Content"
               required
               labelClassName="mb-2 block text-sm font-medium text-foreground/80"
@@ -824,12 +833,12 @@ export function EditPageForm({
 
                 {sectionType === "richText" ? (
                   <div>
-                    <Editor
+                    <RTERoot
                       resetKey={`section-richText-${editingSectionId ?? "new"}`}
                       label="Content"
                       labelClassName="mb-1 block text-xs font-medium text-foreground/70"
                       initialContent={richHtml}
-                      onChange={(_state, _editor, html) => setRichHtml(html)}
+                      onChange={handleSectionRichTextChange}
                       placeholder="Write rich text content here…"
                       editorContainerClassName="border-(--pw-border) bg-background/10"
                       contentMinHeightClassName="min-h-[144px]"

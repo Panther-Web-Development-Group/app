@@ -1,8 +1,12 @@
 "use client"
 import { useEffect, useRef, type FC } from "react"
+import { createPortal } from "react-dom"
 import type { SelectContentProps } from "./types"
 import { cn } from "@/lib/cn"
 import { useSelectContext } from "./Context"
+
+const VIEWPORT_PAD = 8
+const GAP = 4
 
 export const SelectContent: FC<SelectContentProps> = ({
   className,
@@ -15,7 +19,7 @@ export const SelectContent: FC<SelectContentProps> = ({
   const contentRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
-  // Position calculation
+  // Position calculation - use fixed positioning so dropdown escapes overflow containers (e.g. RTE toolbar)
   useEffect(() => {
     if (!open || !contentRef.current) return
 
@@ -27,35 +31,35 @@ export const SelectContent: FC<SelectContentProps> = ({
     const viewportHeight = window.innerHeight
     const viewportWidth = window.innerWidth
     const contentHeight = content.offsetHeight
-    const spaceBelow = viewportHeight - triggerRect.bottom
-    const spaceAbove = triggerRect.top
+    const spaceBelow = viewportHeight - VIEWPORT_PAD - triggerRect.bottom
+    const spaceAbove = triggerRect.top - VIEWPORT_PAD
+    const showAbove =
+      position === "top" || (position === "auto" && spaceBelow < contentHeight && spaceAbove > spaceBelow)
 
-    // Reset positioning
+    content.style.position = "fixed"
+    content.style.width = `${triggerRect.width}px`
+    content.style.minWidth = ""
+    content.style.maxWidth = `${viewportWidth - 2 * VIEWPORT_PAD}px`
     content.style.top = ""
     content.style.bottom = ""
     content.style.left = ""
     content.style.right = ""
     content.style.transform = ""
 
-    // Horizontal positioning - ensure it stays within viewport
-    if (triggerRect.left + triggerRect.width > viewportWidth - 20) {
-      content.style.right = "0"
+    if (showAbove) {
+      content.style.bottom = `${viewportHeight - triggerRect.top + GAP}px`
+      content.style.top = "auto"
     } else {
-      content.style.left = "0"
+      content.style.top = `${triggerRect.bottom + GAP}px`
+      content.style.bottom = "auto"
     }
 
-    // Vertical positioning
-    if (position === "top" || (position === "auto" && spaceBelow < contentHeight && spaceAbove > spaceBelow)) {
-      // Position above
-      content.style.bottom = "100%"
-      content.style.marginBottom = "0.25rem"
-      content.style.marginTop = ""
-    } else {
-      // Position below (default)
-      content.style.top = "100%"
-      content.style.marginTop = "0.25rem"
-      content.style.marginBottom = ""
+    let left = triggerRect.left
+    if (left + triggerRect.width > viewportWidth - VIEWPORT_PAD) {
+      left = viewportWidth - triggerRect.width - VIEWPORT_PAD
     }
+    left = Math.max(VIEWPORT_PAD, left)
+    content.style.left = `${left}px`
   }, [open, triggerId, position])
 
   // Scroll focused option into view
@@ -77,24 +81,21 @@ export const SelectContent: FC<SelectContentProps> = ({
     }
   }, [open, focusedValue, getOptionElement])
 
+  if (!open) return null
+
   const maxHeightValue = typeof maxHeight === "number" ? `${maxHeight}px` : maxHeight
 
-  return (
+  const contentEl = (
     <div
       {...props}
       ref={contentRef}
-      id={listboxId}
-      role="listbox"
-      aria-labelledby={triggerId}
       className={cn(
-        "absolute z-50 w-full overflow-hidden rounded-lg border border-(--pw-border) bg-background shadow-lg",
+        "z-9999 overflow-hidden rounded-lg border border-(--pw-border) bg-background shadow-lg",
         "transition-all duration-200 ease-out",
-        open
-          ? "pointer-events-auto opacity-100 scale-100"
-          : "pointer-events-none opacity-0 scale-95",
+        "pointer-events-auto opacity-100 scale-100",
         className
       )}
-      aria-hidden={!open}
+      aria-hidden={false}
       style={{ maxHeight: maxHeightValue }}
     >
       <div
@@ -102,8 +103,18 @@ export const SelectContent: FC<SelectContentProps> = ({
         className="overflow-auto p-1"
         style={{ maxHeight: maxHeightValue }}
       >
-        {children}
+        <ul
+          id={listboxId}
+          role="listbox"
+          aria-labelledby={triggerId}
+          className="flex list-none flex-col gap-0.5 p-0 m-0"
+        >
+          {children}
+        </ul>
       </div>
     </div>
   )
+
+  if (typeof document === "undefined") return null
+  return createPortal(contentEl, document.body)
 }

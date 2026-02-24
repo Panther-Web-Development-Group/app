@@ -28,6 +28,7 @@ const SelectRoot: FC<PropsWithChildren<SelectProps>> = ({
   value: valueProp,
   defaultValue,
   onValueChange,
+  onEscape,
   children,
   ...divProps
 }) => {
@@ -125,17 +126,18 @@ const SelectRoot: FC<PropsWithChildren<SelectProps>> = ({
 
   const rootRef = useRef<HTMLDivElement>(null)
 
-  // Close on outside click
+  // Close on outside click (content may be in portal, so check both root and listbox)
   useEffect(() => {
     if (!open) return
 
     const onPointerDown = (e: MouseEvent | TouchEvent) => {
-      const el = rootRef.current
-      if (!el) return
-      if (e.target instanceof Node && !el.contains(e.target)) {
-        setOpen(false)
-        setFocusedValue(null)
-      }
+      const target = e.target instanceof Node ? e.target : null
+      if (!target) return
+      if (rootRef.current?.contains(target)) return
+      const listbox = document.getElementById(listboxId)
+      if (listbox?.contains(target)) return
+      setOpen(false)
+      setFocusedValue(null)
     }
 
     const onKeyDown = (e: KeyboardEvent) => {
@@ -143,9 +145,12 @@ const SelectRoot: FC<PropsWithChildren<SelectProps>> = ({
         case "Escape": {
           setOpen(false)
           setFocusedValue(null)
-          // Return focus to trigger
-          const trigger = document.getElementById(triggerId)
-          trigger?.focus()
+          if (onEscape) {
+            onEscape()
+          } else {
+            const trigger = document.getElementById(triggerId)
+            trigger?.focus()
+          }
           break
         }
       }
@@ -158,7 +163,7 @@ const SelectRoot: FC<PropsWithChildren<SelectProps>> = ({
     document.addEventListener("touchstart", onPointerDown, { passive: true, signal })
     document.addEventListener("keydown", onKeyDown, { signal })
     return () => controller.abort()
-  }, [open, triggerId, setOpen, setFocusedValue])
+  }, [open, triggerId, listboxId, setOpen, setFocusedValue, onEscape])
 
 
   const ctx = useMemo<SelectContextValue>(

@@ -28,7 +28,7 @@ export const Main: FC<MainProps> = ({
         className={cn(
           "mx-auto w-full",
           containerClasses[container],
-          padded && "px-4 py-6 sm:px-6 lg:px-8"
+          padded && "px-4 pt-4 pb-6 sm:px-6 sm:pt-6 lg:px-8"
         )}
       >
         {children}

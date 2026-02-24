@@ -3,6 +3,12 @@ import type { ClassValue } from "clsx"
 
 export type ColorPickerProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange"> & {
   className?: ClassValue
+  /** Applied to the trigger button */
+  triggerClassName?: ClassValue
+  /** Applied to the popover dialog */
+  popoverClassName?: ClassValue
+  /** Accessible label for the trigger button (e.g. "Text color") */
+  triggerAriaLabel?: string
 
   name?: string
   disabled?: boolean

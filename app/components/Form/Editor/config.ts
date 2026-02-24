@@ -2,6 +2,7 @@ import { HeadingNode, QuoteNode } from "@lexical/rich-text"
 import { ListItemNode, ListNode } from "@lexical/list"
 import { AutoLinkNode, LinkNode } from "@lexical/link"
 import { CodeNode } from "@lexical/code"
+import { TableNode, TableCellNode, TableRowNode } from "@lexical/table"
 import { ImageNode, CardNode, VideoNode, HorizontalRuleNode } from "./nodes"
 
 export const editorConfig = {
@@ -36,6 +37,9 @@ export const editorConfig = {
     },
     quote: "editor-quote",
     horizontalrule: "editor-hr",
+    table: "editor-table",
+    tableCell: "editor-table-cell",
+    tableRow: "editor-table-row",
   },
   onError: (error: Error) => {
     console.error("Lexical error:", error)
@@ -52,6 +56,9 @@ export const editorConfig = {
     VideoNode,
     HorizontalRuleNode,
     CodeNode,
+    TableNode,
+    TableCellNode,
+    TableRowNode,
   ],
   editorState: (initialContent?: string) => {
     if (initialContent) {

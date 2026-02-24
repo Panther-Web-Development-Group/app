@@ -1,11 +1,17 @@
 "use client"
 import { useCallback, useMemo, useRef, useEffect, type FC } from "react"
+import { ChevronDown } from "lucide-react"
 import type { ComboboxInputProps } from "./types"
 import { cn } from "@/lib/cn"
 import { useComboboxContext } from "./Context"
 
+const DEFAULT_TRIGGER_CLASSES =
+  "inline-flex h-10 w-full items-center gap-2 rounded-lg border border-(--pw-border) bg-background/10 overflow-hidden transition-all duration-200 focus-within:ring-2 focus-within:ring-(--pw-ring) focus-within:ring-offset-2"
+
 export const ComboboxInput: FC<ComboboxInputProps> = ({
   className,
+  triggerClassName,
+  chevronClassName,
   onFocus,
   onBlur,
   onKeyDown,
@@ -29,6 +35,8 @@ export const ComboboxInput: FC<ComboboxInputProps> = ({
     listboxId,
     inputId,
     getOptionId,
+    isClickingOptionRef,
+    justSelectedRef,
   } = useComboboxContext()
 
   const displayPlaceholder = useMemo(() => {
@@ -50,10 +58,15 @@ export const ComboboxInput: FC<ComboboxInputProps> = ({
 
   const handleFocus = useCallback(
     (e: React.FocusEvent<HTMLInputElement>) => {
+      if (justSelectedRef?.current) {
+        justSelectedRef.current = false
+        onFocus?.(e)
+        return
+      }
       setOpen(true)
       onFocus?.(e)
     },
-    [onFocus, setOpen]
+    [justSelectedRef, onFocus, setOpen]
   )
 
   // Use a ref to track blur timeout and prevent clearing query when clicking options
@@ -71,10 +84,13 @@ export const ComboboxInput: FC<ComboboxInputProps> = ({
   const handleBlur = useCallback(
     (e: React.FocusEvent<HTMLInputElement>) => {
       const relatedTarget = e.relatedTarget as HTMLElement | null
-      // Don't clear if focus is moving to an option or within the combobox
       const isMovingToCombobox = relatedTarget?.closest(`[id="${listboxId}"]`) !== null
+      const isClickingOption = isClickingOptionRef?.current === true
       
-      setOpen(false)
+      // Don't close when clicking an option - let the click handler close (avoids unmount before click)
+      if (!isMovingToCombobox && !isClickingOption) {
+        setOpen(false)
+      }
       
       // Only clear query on blur if:
       // 1. Not moving focus to combobox option
@@ -93,7 +109,7 @@ export const ComboboxInput: FC<ComboboxInputProps> = ({
       
       onBlur?.(e)
     },
-    [getOptionText, listboxId, onBlur, query, setOpen, setQuery, value]
+    [getOptionText, isClickingOptionRef, listboxId, onBlur, query, setOpen, setQuery, value]
   )
 
   const handleKeyDown = useCallback(
@@ -192,38 +208,58 @@ export const ComboboxInput: FC<ComboboxInputProps> = ({
   )
 
   // If query is empty, show the selected option text (purely visual).
-  const inputValue = query.length > 0 ? query : (value ? (getOptionText(value) ?? value) : "")
+  // Use value !== undefined so empty string "" (e.g. "Default" option) displays correctly
+  const inputValue = query.length > 0 ? query : (value !== undefined ? (getOptionText(value) ?? value) : "")
+
+  const handleWrapperClick = useCallback(() => {
+    if (disabledCtx) return
+    inputRef.current?.focus()
+  }, [disabledCtx])
 
   return (
-    <input
-      {...props}
-      ref={(el) => {
-        inputRef.current = el
-      }}
-      id={inputId}
-      role="combobox"
-      aria-autocomplete="list"
-      aria-expanded={open}
-      aria-controls={listboxId}
-      aria-activedescendant={ariaActiveDescendant}
-      disabled={disabledCtx}
-      value={inputValue}
-      placeholder={displayPlaceholder}
-      onChange={handleChange}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
-      onKeyDown={handleKeyDown}
+    <div
+      onClick={handleWrapperClick}
       className={cn(
-        "h-10 w-full rounded-lg border border-(--pw-border) bg-background/10 px-3 text-sm text-foreground outline-none",
-        "transition-all duration-200",
-        "focus-visible:ring-2 focus-visible:ring-(--pw-ring) focus-visible:ring-offset-2",
+        DEFAULT_TRIGGER_CLASSES,
         disabledCtx
           ? "cursor-not-allowed opacity-60"
-          : "hover:bg-background/15 hover:border-(--pw-border)/80 active:bg-background/20",
+          : "cursor-text hover:bg-background/15 hover:border-(--pw-border)/80 active:bg-background/20",
         open && "border-(--pw-border)/80",
-        className
+        triggerClassName
       )}
-    />
+    >
+      <input
+        {...props}
+        ref={(el) => {
+          inputRef.current = el
+        }}
+        id={inputId}
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={open}
+        aria-controls={listboxId}
+        aria-activedescendant={ariaActiveDescendant}
+        disabled={disabledCtx}
+        value={inputValue}
+        placeholder={displayPlaceholder}
+        onChange={handleChange}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+        className={cn(
+          "flex-1 min-w-0 border-0 bg-transparent px-3 py-2 text-sm text-foreground outline-none",
+          className
+        )}
+      />
+      <ChevronDown
+        className={cn(
+          "h-4 w-4 shrink-0 text-foreground/70 transition-transform duration-200 mr-3 pointer-events-none",
+          open && "rotate-180",
+          chevronClassName
+        )}
+        aria-hidden
+      />
+    </div>
   )
 }
 

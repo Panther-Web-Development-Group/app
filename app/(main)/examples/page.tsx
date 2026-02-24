@@ -139,6 +139,12 @@ export default function ExamplesPage() {
           >
             Timeline →
           </Link>
+          <Link
+            href="/examples/rte"
+            className="inline-block text-sm font-medium text-accent hover:underline"
+          >
+            RTE →
+          </Link>
         </div>
       </header>
 

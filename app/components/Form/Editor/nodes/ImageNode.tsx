@@ -9,7 +9,7 @@ import {
   Spread,
 } from "lexical"
 import { ImageBlockComponent } from "../components/ImageBlockComponent"
-import type { LexicalNode } from "lexical"
+// import type { 
 
 export type SerializedImageNode = Spread<
   {

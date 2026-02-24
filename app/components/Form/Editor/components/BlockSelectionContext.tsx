@@ -2,10 +2,12 @@
 
 import { createContext, useContext, useState, useCallback, ReactNode } from "react"
 
+export type BlockNodeType = "image" | "card" | "video" | "gallery"
+
 interface BlockSelectionContextValue {
   selectedNodeKey: string | null
-  selectedNodeType: "image" | "card" | "video" | null
-  selectBlock: (nodeKey: string, nodeType: "image" | "card" | "video") => void
+  selectedNodeType: BlockNodeType | null
+  selectBlock: (nodeKey: string, nodeType: BlockNodeType) => void
   clearSelection: () => void
 }
 
@@ -13,9 +15,9 @@ const BlockSelectionContext = createContext<BlockSelectionContextValue | null>(n
 
 export function BlockSelectionProvider({ children }: { children: ReactNode }) {
   const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(null)
-  const [selectedNodeType, setSelectedNodeType] = useState<"image" | "card" | "video" | null>(null)
+  const [selectedNodeType, setSelectedNodeType] = useState<BlockNodeType | null>(null)
 
-  const selectBlock = useCallback((nodeKey: string, nodeType: "image" | "card" | "video") => {
+  const selectBlock = useCallback((nodeKey: string, nodeType: BlockNodeType) => {
     setSelectedNodeKey(nodeKey)
     setSelectedNodeType(nodeType)
   }, [])

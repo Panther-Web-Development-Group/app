@@ -29,6 +29,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-  ],
+, "app/components/Form/RTE/Shell/Field/Blocks/Base"  ],
   "exclude": ["node_modules"]
 }

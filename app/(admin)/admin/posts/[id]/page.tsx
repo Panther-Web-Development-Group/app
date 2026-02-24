@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useRef, useCallback } from "react"
 import { useRouter, useParams } from "next/navigation"
-import { Editor, getEditorStateAsJSON } from "@/app/components/Form/Editor"
+import { RTERoot } from "@/app/components/Form/RTE"
+import { getEditorStateAsJSON } from "@/app/components/Form/RTE/actions/editorState"
 import { updatePost, getPostById, createPost } from "@/lib/supabase/server/actions/posts"
 import { Save, X, Eye } from "lucide-react"
 import Link from "next/link"
@@ -213,7 +214,7 @@ export default function EditPostPage() {
         </div>
 
         <div>
-          <Editor
+          <RTERoot
             label="Content"
             required
             labelClassName="mb-2 block text-sm font-medium text-foreground/80"

@@ -26,6 +26,8 @@ export type SelectProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange"> & {
   /** Uncontrolled initial value */
   defaultValue?: string | string[]
   onValueChange?: (value: string | string[]) => void
+  /** When provided, called on Escape instead of focusing the trigger (e.g. for RTE toolbar) */
+  onEscape?: () => void
 }
 
 export type SelectContextValue = {
@@ -80,7 +82,8 @@ export type SelectOptionProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "t
   label?: ReactNode
 }
 
-export type SelectGroupProps = HTMLAttributes<HTMLDivElement> & {
+export type SelectGroupProps = HTMLAttributes<HTMLLIElement> & {
   className?: ClassValue
+  /** Optional label for the option group (e.g. "Fruits", "Vegetables") */
   label?: ReactNode
 }

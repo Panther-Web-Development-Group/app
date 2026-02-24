@@ -32,10 +32,13 @@ export const ComboboxOption: FC<ComboboxOptionProps> = ({
     setOpen,
     setQuery,
     clearOnSelect,
+    focusInputAfterSelect = true,
     activeValue,
     setActiveValue,
     getOptionId,
     inputId,
+    isClickingOptionRef,
+    justSelectedRef,
   } = useComboboxContext()
 
   const text = useMemo(() => textValue ?? defaultTextFromChildren(children, value), [children, textValue, value])
@@ -78,41 +81,44 @@ export const ComboboxOption: FC<ComboboxOptionProps> = ({
   }, [disabled, setActiveValue, value])
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    // Keep focus on the input so blur doesn't close before click.
+    // Mark that we're clicking so blur doesn't close dropdown before click fires
+    if (isClickingOptionRef) isClickingOptionRef.current = true
+    // Keep focus on the input so blur doesn't close before click
     e.preventDefault()
-  }, [])
+  }, [isClickingOptionRef])
 
   const handleClick = useCallback(() => {
     if (disabled) return
+    if (isClickingOptionRef) isClickingOptionRef.current = false
+    if (justSelectedRef) justSelectedRef.current = true
     setValue(value)
     setActiveValue(value)
     setOpen(false)
-    if (clearOnSelect) {
-      // Small delay to ensure the value is set before clearing query
-      setTimeout(() => setQuery(""), 0)
-    }
+    if (clearOnSelect) setQuery("")
 
-    const input = document.getElementById(inputId) as HTMLInputElement | null
-    // Delay focus to allow the click to complete
-    setTimeout(() => input?.focus(), 0)
-  }, [clearOnSelect, disabled, inputId, setActiveValue, setOpen, setQuery, setValue, value])
+    if (focusInputAfterSelect) {
+      const input = document.getElementById(inputId) as HTMLInputElement | null
+      setTimeout(() => input?.focus(), 0)
+    }
+  }, [clearOnSelect, disabled, focusInputAfterSelect, inputId, isClickingOptionRef, justSelectedRef, setActiveValue, setOpen, setQuery, setValue, value])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (disabled) return
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault()
+        if (justSelectedRef) justSelectedRef.current = true
         setValue(value)
         setActiveValue(value)
         setOpen(false)
-        if (clearOnSelect) {
-          setTimeout(() => setQuery(""), 0)
+        if (clearOnSelect) setQuery("")
+        if (focusInputAfterSelect) {
+          const input = document.getElementById(inputId) as HTMLInputElement | null
+          setTimeout(() => input?.focus(), 0)
         }
-        const input = document.getElementById(inputId) as HTMLInputElement | null
-        setTimeout(() => input?.focus(), 0)
       }
     },
-    [clearOnSelect, disabled, inputId, setActiveValue, setOpen, setQuery, setValue, value]
+    [clearOnSelect, disabled, focusInputAfterSelect, inputId, justSelectedRef, setActiveValue, setOpen, setQuery, setValue, value]
   )
 
   if (!matches) return null

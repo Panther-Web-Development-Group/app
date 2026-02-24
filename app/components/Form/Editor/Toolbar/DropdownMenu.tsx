@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useId, useRef, useState, type FC, type ReactNode } from "react"
+import { createPortal } from "react-dom"
 import { Button } from "@/app/components/Button"
 import { ChevronDown } from "lucide-react"
 import { cn } from "@/lib/cn"
@@ -85,16 +86,17 @@ export const DropdownMenu: FC<DropdownMenuProps> = ({
     [handleClose]
   )
 
-  // Close on outside click or Escape key
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Close on outside click or Escape key (menu may be in portal, so check both root and menu)
   useEffect(() => {
     if (!open) return
 
     const handlePointerDown = (e: MouseEvent | TouchEvent) => {
-      const el = rootRef.current
-      if (!el) return
-      if (e.target instanceof Node && !el.contains(e.target)) {
-        handleClose()
-      }
+      const target = e.target instanceof Node ? e.target : null
+      if (!target) return
+      if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) return
+      handleClose()
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -119,11 +121,11 @@ export const DropdownMenu: FC<DropdownMenuProps> = ({
     }
   }, [open, handleClose])
 
-  // Keyboard navigation
+  // Keyboard navigation (menu may be in portal - use menuRef)
   useEffect(() => {
     if (!open) return
 
-    const menuElement = rootRef.current?.querySelector('[role="menu"]')
+    const menuElement = menuRef.current ?? document.getElementById(menuId)
     if (!menuElement) return
 
     const items = Array.from(menuElement.querySelectorAll('[role="menuitem"]')) as HTMLElement[]
@@ -162,19 +164,128 @@ export const DropdownMenu: FC<DropdownMenuProps> = ({
     }
   }, [open])
 
-  const alignClasses = {
-    left: "left-0",
-    right: "right-0",
-    center: "left-1/2 -translate-x-1/2",
-  }
+  // Position with fixed + portal so menu escapes overflow containers (e.g. RTE toolbar)
+  const VIEWPORT_PAD = 8
+  const GAP = 6
+  const MIN_SPACE_BELOW_TO_SHOW = 120
+  useEffect(() => {
+    if (!open || !rootRef.current || !menuRef.current) return
+
+    const trigger = rootRef.current.querySelector(`#${triggerId}`) as HTMLElement
+    if (!trigger) return
+
+    const run = () => {
+      const menu = menuRef.current
+      if (!menu) return
+      const triggerRect = trigger.getBoundingClientRect()
+      const vw = window.innerWidth
+      const vh = window.innerHeight
+      const menuRect = menu.getBoundingClientRect()
+      const menuWidth = menuRect.width || 256
+
+      menu.style.position = "fixed"
+      menu.style.left = ""
+      menu.style.right = ""
+      menu.style.top = ""
+      menu.style.bottom = ""
+      menu.style.transform = ""
+
+      const spaceBelow = vh - VIEWPORT_PAD - triggerRect.bottom
+      const spaceAbove = triggerRect.top - VIEWPORT_PAD
+      const showAbove =
+        spaceBelow < MIN_SPACE_BELOW_TO_SHOW && spaceAbove > spaceBelow
+
+      if (showAbove) {
+        menu.style.bottom = `${vh - triggerRect.top + GAP}px`
+        menu.style.top = "auto"
+      } else {
+        menu.style.top = `${triggerRect.bottom + GAP}px`
+        menu.style.bottom = "auto"
+      }
+
+      let left: number
+      if (align === "right") {
+        left = triggerRect.right - menuWidth
+      } else if (align === "center") {
+        left = triggerRect.left + (triggerRect.width - menuWidth) / 2
+      } else {
+        left = triggerRect.left
+      }
+      left = Math.max(VIEWPORT_PAD, Math.min(left, vw - menuWidth - VIEWPORT_PAD))
+      menu.style.left = `${left}px`
+    }
+
+    const timeout = setTimeout(run, 0)
+    return () => clearTimeout(timeout)
+  }, [open, align, triggerId])
 
   const filteredItems = items ? items.filter((item) => item !== null) : []
+
+  const menuContent = open ? (
+    <div
+      ref={menuRef}
+      id={menuId}
+      role={children ? "dialog" : "menu"}
+      aria-labelledby={triggerId}
+      className={cn(
+        "z-9999 rounded-lg max-h-[min(70vh,400px)] overflow-x-hidden overflow-y-auto",
+        "border border-foreground/10 dark:border-foreground/20",
+        "bg-background/95 backdrop-blur-md shadow-xl",
+        "ring-1 ring-foreground/5",
+        children ? "w-64 p-2.5" : "min-w-[160px]",
+        contentClassName
+      )}
+    >
+      {children ? (
+        children
+      ) : (
+        <div className="p-0.5">
+          {filteredItems.map((item, index) => {
+            if (item.separator) {
+              return (
+                <div
+                  key={`separator-${index}`}
+                  className="my-1 h-px bg-foreground/10 dark:bg-foreground/20"
+                  role="separator"
+                />
+              )
+            }
+
+            return (
+              <button
+                key={`item-${index}`}
+                type="button"
+                role="menuitem"
+                onClick={() => handleItemClick(item)}
+                disabled={item.disabled}
+                aria-disabled={item.disabled}
+                className={cn(
+                  "w-full flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-foreground transition-colors",
+                  "hover:bg-foreground/5 dark:hover:bg-foreground/10",
+                  "focus:bg-foreground/5 dark:focus:bg-foreground/10 focus:outline-none",
+                  item.disabled && "opacity-40 cursor-not-allowed"
+                )}
+              >
+                {item.icon && (
+                  <span className="flex h-3.5 w-3.5 items-center justify-center text-foreground/70 shrink-0">
+                    {item.icon}
+                  </span>
+                )}
+                <span className="flex-1 text-left">{item.label}</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  ) : null
 
   return (
     <div ref={rootRef} className={cn("relative", className)}>
       <Button
         id={triggerId}
         type="button"
+        onMouseDown={(e) => e.preventDefault()}
         onClick={handleToggle}
         disabled={disabled}
         variant="ghost"
@@ -207,64 +318,7 @@ export const DropdownMenu: FC<DropdownMenuProps> = ({
         )}
       </Button>
 
-      {open && (
-        <div
-          id={menuId}
-          role={children ? "dialog" : "menu"}
-          aria-labelledby={triggerId}
-          className={cn(
-            "absolute top-full z-50 mt-1.5 rounded-lg",
-            "border border-foreground/10 dark:border-foreground/20",
-            "bg-background/95 backdrop-blur-md shadow-xl",
-            "ring-1 ring-foreground/5",
-            children ? "w-64 p-2.5" : "min-w-[160px]",
-            alignClasses[align],
-            contentClassName
-          )}
-        >
-          {children ? (
-            children
-          ) : (
-            <div className="p-0.5">
-              {filteredItems.map((item, index) => {
-                if (item.separator) {
-                  return (
-                    <div
-                      key={`separator-${index}`}
-                      className="my-1 h-px bg-foreground/10 dark:bg-foreground/20"
-                      role="separator"
-                    />
-                  )
-                }
-
-                return (
-                  <button
-                    key={`item-${index}`}
-                    type="button"
-                    role="menuitem"
-                    onClick={() => handleItemClick(item)}
-                    disabled={item.disabled}
-                    aria-disabled={item.disabled}
-                    className={cn(
-                      "w-full flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-foreground transition-colors",
-                      "hover:bg-foreground/5 dark:hover:bg-foreground/10",
-                      "focus:bg-foreground/5 dark:focus:bg-foreground/10 focus:outline-none",
-                      item.disabled && "opacity-40 cursor-not-allowed"
-                    )}
-                  >
-                    {item.icon && (
-                      <span className="flex h-3.5 w-3.5 items-center justify-center text-foreground/70 shrink-0">
-                        {item.icon}
-                      </span>
-                    )}
-                    <span className="flex-1 text-left">{item.label}</span>
-                  </button>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )}
+      {open && typeof document !== "undefined" && createPortal(menuContent, document.body)}
     </div>
   )
 }

@@ -109,6 +109,9 @@ function generatePalette(base: HSL): string[] {
 
 export const ColorPicker: FC<ColorPickerProps> = ({
   className,
+  triggerClassName,
+  popoverClassName,
+  triggerAriaLabel,
   name,
   disabled,
   value: valueProp,
@@ -381,11 +384,13 @@ export const ColorPicker: FC<ColorPickerProps> = ({
         aria-expanded={open}
         aria-haspopup="dialog"
         aria-controls={popoverId}
+        aria-label={triggerAriaLabel}
         onClick={() => !disabled && setOpen((o) => !o)}
         className={cn(
           "inline-flex h-10 w-full items-center gap-3 rounded-lg border border-(--pw-border) bg-background/10 px-3 text-left outline-none transition-colors",
           "focus-visible:ring-2 focus-visible:ring-(--pw-ring)",
-          disabled ? "cursor-not-allowed" : "cursor-pointer hover:bg-background/15"
+          disabled ? "cursor-not-allowed" : "cursor-pointer hover:bg-background/15",
+          triggerClassName
         )}
       >
         <div
@@ -405,7 +410,10 @@ export const ColorPicker: FC<ColorPickerProps> = ({
           id={popoverId}
           role="dialog"
           aria-labelledby={triggerId}
-          className="absolute left-0 top-full z-50 mt-1.5 w-full min-w-[320px] max-w-[calc(100vw-2rem)] rounded-lg border border-(--pw-border) bg-secondary/20 p-4 shadow-[0_10px_40px_var(--pw-shadow)] backdrop-blur-md"
+          className={cn(
+            "absolute left-0 top-full z-50 mt-1.5 w-full min-w-[280px] max-w-[min(360px,calc(100vw-1.5rem))] rounded-lg border border-(--pw-border) bg-secondary/20 p-4 shadow-[0_10px_40px_var(--pw-shadow)] backdrop-blur-md overflow-auto",
+            popoverClassName
+          )}
         >
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap gap-4 items-start">

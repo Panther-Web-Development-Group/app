@@ -42,7 +42,10 @@ const ComboboxRoot: FC<PropsWithChildren<ComboboxProps>> = ({
   onQueryChange,
   placeholder,
   clearOnSelect = true,
+  focusInputAfterSelect = true,
   filter,
+  onEscape,
+  options: optionsProp,
   children,
   ...divProps
 }) => {
@@ -73,6 +76,8 @@ const ComboboxRoot: FC<PropsWithChildren<ComboboxProps>> = ({
 
   const [open, setOpenState] = useState(false)
   const [activeValue, setActiveValue] = useState<string | undefined>(undefined)
+  const isClickingOptionRef = useRef(false)
+  const justSelectedRef = useRef(false)
 
   const orderRef = useRef(0)
   const [optionsMap, setOptionsMap] = useState<Map<string, OptionRecord>>(() => new Map())
@@ -104,9 +109,11 @@ const ComboboxRoot: FC<PropsWithChildren<ComboboxProps>> = ({
 
   const getOptionText = useCallback(
     (optValue: string) => {
-      return optionsMap.get(optValue)?.text
+      const fromMap = optionsMap.get(optValue)?.text
+      if (fromMap !== undefined) return fromMap
+      return optionsProp?.find((o) => o.value === optValue)?.text
     },
-    [optionsMap]
+    [optionsMap, optionsProp]
   )
 
   const getOptionDisabled = useCallback(
@@ -158,24 +165,51 @@ const ComboboxRoot: FC<PropsWithChildren<ComboboxProps>> = ({
     [activeValue, getVisibleValues]
   )
 
-  // Close on outside click / Escape
+  // When controlled value changes from outside (e.g. editor selection), clear query
+  // so the input shows the new value's label instead of stale typed text.
+  const valueRef = useRef(value)
+  useEffect(() => {
+    if (valueControlled && value !== valueRef.current) {
+      valueRef.current = value
+      if (!open) setQuery("")
+    }
+  }, [valueControlled, value, open, setQuery])
+
+  // Clear "clicking option" ref on mouseup so we don't get stuck if user mousedowns then releases outside
+  useEffect(() => {
+    const onMouseUp = () => {
+      if (isClickingOptionRef.current) {
+        isClickingOptionRef.current = false
+      }
+    }
+    document.addEventListener("mouseup", onMouseUp)
+    return () => document.removeEventListener("mouseup", onMouseUp)
+  }, [isClickingOptionRef])
+
   const rootRef = useRef<HTMLDivElement>(null)
+  const generatedId = useId()
+  const inputId = `${generatedId}-input`
+  const listboxId = `${generatedId}-listbox`
+
+  // Close on outside click / Escape (content may be in portal, so check both root and listbox)
   useEffect(() => {
     if (!open) return
 
     const onPointerDown = (e: MouseEvent | TouchEvent) => {
-      const el = rootRef.current
-      if (!el) return
-      if (e.target instanceof Node && !el.contains(e.target)) {
-        setOpen(false)
-        setQuery("")
-      }
+      const target = e.target instanceof Node ? e.target : null
+      if (!target) return
+      if (rootRef.current?.contains(target)) return
+      const listbox = document.getElementById(listboxId)
+      if (listbox?.contains(target)) return
+      setOpen(false)
+      setQuery("")
     }
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setOpen(false)
         setQuery("")
+        onEscape?.()
       }
     }
 
@@ -185,11 +219,7 @@ const ComboboxRoot: FC<PropsWithChildren<ComboboxProps>> = ({
     document.addEventListener("touchstart", onPointerDown, { passive: true, signal })
     document.addEventListener("keydown", onKeyDown, { signal })
     return () => controller.abort()
-  }, [open, setOpen, setQuery])
-
-  const generatedId = useId()
-  const inputId = `${generatedId}-input`
-  const listboxId = `${generatedId}-listbox`
+  }, [open, listboxId, setOpen, setQuery, onEscape])
 
   const getOptionId = useCallback(
     (optValue: string) => `${listboxId}-opt-${toSafeIdPart(optValue)}`,
@@ -200,6 +230,8 @@ const ComboboxRoot: FC<PropsWithChildren<ComboboxProps>> = ({
     () => ({
       name,
       disabled,
+      isClickingOptionRef,
+      justSelectedRef,
       open,
       setOpen,
       value,
@@ -208,6 +240,7 @@ const ComboboxRoot: FC<PropsWithChildren<ComboboxProps>> = ({
       setQuery,
       placeholder,
       clearOnSelect,
+      focusInputAfterSelect,
       filter,
       activeValue,
       setActiveValue,
@@ -224,6 +257,8 @@ const ComboboxRoot: FC<PropsWithChildren<ComboboxProps>> = ({
     [
       name,
       disabled,
+      isClickingOptionRef,
+      justSelectedRef,
       open,
       setOpen,
       value,
@@ -232,6 +267,7 @@ const ComboboxRoot: FC<PropsWithChildren<ComboboxProps>> = ({
       setQuery,
       placeholder,
       clearOnSelect,
+      focusInputAfterSelect,
       filter,
       activeValue,
       registerOption,

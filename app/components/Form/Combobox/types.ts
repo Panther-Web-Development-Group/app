@@ -27,13 +27,31 @@ export type ComboboxProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange"> & {
   /** Clear query text after selecting an option (default: false) */
   clearOnSelect?: boolean
 
+  /** Focus input after selecting (default: true). Set false when parent focuses editor (e.g. RTE toolbar). */
+  focusInputAfterSelect?: boolean
+
   /** Custom filter predicate (defaults to case-insensitive substring match) */
   filter?: (args: { query: string; optionValue: string; optionText: string }) => boolean
+
+  /** When provided, called on Escape (e.g. focus editor in RTE toolbar) */
+  onEscape?: () => void
+
+  /**
+   * Static options for display when dropdown is closed.
+   * When provided, getOptionText uses these when the option isn't in the dynamic map
+   * (e.g. options are only mounted when dropdown is open).
+   */
+  options?: Array<{ value: string; text: string }>
 }
 
 export type ComboboxContextValue = {
   name?: string
   disabled?: boolean
+
+  /** Ref set by Option on mousedown so blur can defer close when clicking an option */
+  isClickingOptionRef?: React.MutableRefObject<boolean>
+  /** Ref set by Option on select so focus doesn't reopen dropdown */
+  justSelectedRef?: React.MutableRefObject<boolean>
 
   open: boolean
   setOpen: (open: boolean) => void
@@ -46,6 +64,7 @@ export type ComboboxContextValue = {
 
   placeholder?: ReactNode
   clearOnSelect: boolean
+  focusInputAfterSelect: boolean
   filter?: (args: { query: string; optionValue: string; optionText: string }) => boolean
 
   activeValue?: string
@@ -68,6 +87,10 @@ export type ComboboxInputProps = Omit<
   "value" | "defaultValue" | "disabled"
 > & {
   className?: ClassValue
+  /** Optional className for the trigger wrapper (input + chevron). Defaults to form-style. */
+  triggerClassName?: ClassValue
+  /** Optional className for the chevron icon (e.g. smaller for toolbar). */
+  chevronClassName?: ClassValue
 }
 
 export type ComboboxContentProps = HTMLAttributes<HTMLDivElement> & {

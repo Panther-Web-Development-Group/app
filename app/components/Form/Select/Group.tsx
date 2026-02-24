@@ -1,4 +1,5 @@
- "use client"
+"use client"
+
 import { useId, type FC } from "react"
 import type { SelectGroupProps } from "./types"
 import { cn } from "@/lib/cn"
@@ -8,14 +9,19 @@ export const SelectGroup: FC<SelectGroupProps> = ({ className, label, children, 
   const labelId = `${generatedId}-label`
 
   return (
-    <div {...props} role="group" aria-labelledby={label ? labelId : undefined} className={cn("py-1", className)}>
+    <li
+      {...props}
+      role="group"
+      aria-labelledby={label ? labelId : undefined}
+      className={cn("list-none py-1", className)}
+    >
       {label ? (
-        <div id={labelId} className="px-2 pb-1 text-xs font-semibold text-foreground/60">
+        <span id={labelId} className="block px-2 pb-1 text-xs font-semibold text-foreground/60">
           {label}
-        </div>
+        </span>
       ) : null}
-      <div className="space-y-1">{children}</div>
-    </div>
+      <ul className="flex list-none flex-col gap-0.5 p-0 m-0">{children}</ul>
+    </li>
   )
 }
 

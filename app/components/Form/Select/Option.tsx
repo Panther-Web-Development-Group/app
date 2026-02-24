@@ -100,32 +100,34 @@ export const SelectOption: FC<SelectOptionProps> = ({
   }, [optionValue, setFocusedValue])
 
   return (
-    <Button
-      {...buttonProps}
-      ref={optionRef}
-      type="button"
-      role="option"
-      aria-selected={isSelected}
-      data-value={optionValue}
-      disabled={disabled}
-      onClick={handleClick}
-      onKeyDown={handleKeyDown}
-      onFocus={handleFocus}
-      className={cn(
-        "flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-foreground transition-colors",
-        "outline-none focus-visible:ring-2 focus-visible:ring-(--pw-ring) focus-visible:ring-offset-1",
-        disabled
-          ? "cursor-not-allowed opacity-50"
-          : "cursor-pointer hover:bg-background/20 active:bg-background/30",
-        isSelected && "bg-background/15 font-medium",
-        isFocused && !isSelected && "bg-background/10",
-        className
-      )}
-    >
-      <span className="flex h-4 w-4 shrink-0 items-center justify-center text-foreground/70">
-        {isSelected ? <CheckIcon className="h-4 w-4" /> : null}
-      </span>
-      <span className="min-w-0 flex-1 truncate">{children}</span>
-    </Button>
+    <li className="list-none">
+      <Button
+        {...buttonProps}
+        ref={optionRef}
+        type="button"
+        role="option"
+        aria-selected={isSelected}
+        data-value={optionValue}
+        disabled={disabled}
+        onClick={handleClick}
+        onKeyDown={handleKeyDown}
+        onFocus={handleFocus}
+        className={cn(
+          "flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-foreground transition-colors",
+          "outline-none focus-visible:ring-2 focus-visible:ring-(--pw-ring) focus-visible:ring-offset-1",
+          disabled
+            ? "cursor-not-allowed opacity-50"
+            : "cursor-pointer hover:bg-background/20 active:bg-background/30",
+          isSelected && "bg-background/15 font-medium",
+          isFocused && !isSelected && "bg-background/10",
+          className
+        )}
+      >
+        <span className="flex h-4 w-4 shrink-0 items-center justify-center text-foreground/70">
+          {isSelected ? <CheckIcon className="h-4 w-4" /> : null}
+        </span>
+        <span className="min-w-0 flex-1 truncate">{children}</span>
+      </Button>
+    </li>
   )
 }
