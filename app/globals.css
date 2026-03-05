@@ -1,264 +1,63 @@
 @import "tailwindcss";
 
 :root {
-  /* PantherWeb theme (light) */
-  /* Base: alice blue */
-  --pw-bg: #F0F8FF;
-  /* Primary foreground */
-  --pw-fg: #1f1f1f;
+  --background: rgb(22 29 40);
+  --foreground: #f8fafc;
+  --header-background: rgb(22 29 40);
+  --secondary: #64748b;
+  --secondary-foreground: #f1f5f9;
+  --accent: #22d3ee;
+  --accent-foreground: #0f172a;
+  --info: #0ea5e9;
+  --info-foreground: #ffffff;
+  --border: rgb(248 250 252 / 0.1);
+  --muted-foreground: #94a3b8;
+  --ring: 0 0 0 2px rgb(34 211 238 / 0.5);
+}
 
-  /* Secondary */
-  --pw-bg-secondary: #E6F2FF;
-  --pw-fg-secondary: #0a0f1b;
+@layer base {
+  @keyframes ticker-left {
+    from {
+      transform: translate3d(100%, 0, 0);
+    }
+    to {
+      transform: translate3d(0, 0, 0);
+    }
+  }
 
-  /* Accent (tech-inspired) */
-  --pw-bg-accent: #7DD3FF;
-  --pw-fg-accent: #1f1f1f;
-
-  /* Neutrals */
-  --pw-border: rgba(31, 31, 31, 0.18);
-  --pw-shadow: rgba(10, 15, 27, 0.18);
-  --pw-ring: rgba(0, 223, 255, 0.35);
-
-  /* Alerts */
-  --pw-danger: #DF0000;
-  --pw-warning: #FFBC00;
-  --pw-info: #00DFFF;
-  --pw-success: #00EF3F;
-
-  /* Back-compat */
-  --background: var(--pw-bg);
-  --foreground: var(--pw-fg);
+  @keyframes ticker-right {
+    from {
+      transform: translate3d(0, 0, 0);
+    }
+    to {
+      transform: translate3d(100%, 0, 0);
+    }
+  }
 }
 
 @theme inline {
-  --color-background: var(--pw-bg);
-  --color-foreground: var(--pw-fg);
-  --color-secondary: var(--pw-bg-secondary);
-  --color-secondary-foreground: var(--pw-fg-secondary);
-  --color-accent: var(--pw-bg-accent);
-  --color-accent-foreground: var(--pw-fg-accent);
-
-  --color-danger: var(--pw-danger);
-  --color-warning: var(--pw-warning);
-  --color-info: var(--pw-info);
-  --color-success: var(--pw-success);
-
-  --font-sans: var(--exo-font);
-  --font-mono: var(--exo-font);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-header-background: var(--header-background);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --font-sans: var(--font-exo);
+  --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", monospace;
+  --color-border: var(--border);
+  --color-muted-foreground: var(--muted-foreground);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* PantherWeb theme (dark) */
-    /* Base: slate gray */
-    --pw-bg: #0f172a;
-    /* Primary foreground */
-    --pw-fg: #ededff;
-
-    /* Secondary */
-    --pw-bg-secondary: #111c33;
-    --pw-fg-secondary: #cfdfff;
-
-    /* Accent (tech-inspired) */
-    --pw-bg-accent: #1F4F6C;
-    --pw-fg-accent: #ededff;
-
-    --pw-border: rgba(237, 237, 255, 0.14);
-    --pw-shadow: rgba(0, 0, 0, 0.35);
-    --pw-ring: rgba(0, 223, 255, 0.35);
-
-    --background: var(--pw-bg);
-    --foreground: var(--pw-fg);
-  }
-}
-
-/* Form Progress indeterminate animation */
-@keyframes progress-indeterminate {
-  0% {
-    transform: translateX(-100%);
-  }
-  50% {
-    transform: translateX(100%);
-  }
-  100% {
-    transform: translateX(-100%);
-  }
-}
-
-/* Form CircularProgress indeterminate (spinner) */
-@keyframes circular-progress-indeterminate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+html,
+body {
+  overflow-x: hidden;
 }
 
 body {
-  background:
-    radial-gradient(1200px circle at 20% -10%, color-mix(in oklab, var(--pw-info) 18%, transparent) 0%, transparent 55%),
-    radial-gradient(900px circle at 110% 10%, color-mix(in oklab, var(--pw-bg-accent) 22%, transparent) 0%, transparent 55%),
-    var(--background);
+  background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-}
-
-/* Editor styles */
-.editor-input {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
-}
-
-.editor-input::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-.editor-input::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.editor-input::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
-}
-
-@media (prefers-color-scheme: dark) {
-  .editor-input::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.1);
-  }
-}
-
-/* Editor block styles – ensure all block types display properly inside .editor-input */
-.editor-input .editor-paragraph {
-  margin: 0.5em 0;
-  line-height: 1.6;
-}
-.editor-input .editor-heading-h1 { margin: 0.75em 0 0.35em; font-size: 1.875rem; font-weight: 700; line-height: 1.2; }
-.editor-input .editor-heading-h2 { margin: 0.75em 0 0.35em; font-size: 1.5rem; font-weight: 700; line-height: 1.25; }
-.editor-input .editor-heading-h3 { margin: 0.6em 0 0.3em; font-size: 1.25rem; font-weight: 600; line-height: 1.3; }
-.editor-input .editor-heading-h4 { margin: 0.5em 0 0.25em; font-size: 1.125rem; font-weight: 600; line-height: 1.35; }
-
-.editor-input .editor-list-ul,
-.editor-input .editor-list-ol {
-  margin: 0.5em 0;
-  padding-left: 1.5em;
-}
-.editor-input .editor-list-ul { list-style-type: disc; }
-.editor-input .editor-list-ol { list-style-type: decimal; }
-.editor-input .editor-listitem {
-  margin: 0.2em 0;
-  line-height: 1.5;
-}
-.editor-input .editor-nested-listitem {
-  margin: 0.15em 0;
-}
-
-.editor-input .editor-quote {
-  margin: 0.75em 0;
-  padding-left: 1rem;
-  border-left: 4px solid rgba(31, 31, 31, 0.2);
-  font-style: italic;
-  color: inherit;
-  opacity: 0.95;
-}
-@media (prefers-color-scheme: dark) {
-  .editor-input .editor-quote {
-    border-left-color: rgba(255, 255, 255, 0.25);
-  }
-}
-
-.editor-input .editor-code {
-  margin: 0.75em 0;
-  padding: 0.75rem 1rem;
-  font-size: 0.875rem;
-  line-height: 1.5;
-  border-radius: 0.25rem;
-  overflow-x: auto;
-  background: rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-}
-@media (prefers-color-scheme: dark) {
-  .editor-input .editor-code {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.1);
-  }
-}
-
-.editor-input .editor-hr {
-  margin: 1rem 0;
-}
-
-/* Table block */
-.editor-input .editor-table {
-  width: 100%;
-  margin: 0.75em 0;
-  border-collapse: collapse;
-  table-layout: fixed;
-}
-.editor-input .editor-table-cell {
-  border: 1px solid rgba(31, 31, 31, 0.15);
-  padding: 0.5rem 0.75rem;
-  vertical-align: top;
-  min-width: 4rem;
-}
-@media (prefers-color-scheme: dark) {
-  .editor-input .editor-table-cell {
-    border-color: rgba(255, 255, 255, 0.15);
-  }
-}
-.editor-input .editor-table-row:first-child .editor-table-cell {
-  font-weight: 600;
-  background: rgba(0, 0, 0, 0.03);
-}
-@media (prefers-color-scheme: dark) {
-  .editor-input .editor-table-row:first-child .editor-table-cell {
-    background: rgba(255, 255, 255, 0.05);
-  }
-}
-
-/* Links inside editor */
-.editor-input .editor-link {
-  color: var(--color-info, #0ea5e9);
-  text-decoration: none;
-}
-.editor-input .editor-link:hover {
-  text-decoration: underline;
-}
-
-/* Block wrappers (thumbnail, callout, image, video, card) – consistent spacing */
-.editor-input .editor-thumbnail-wrapper,
-.editor-input .editor-callout-wrapper,
-.editor-input .editor-image-wrapper,
-.editor-input .editor-video-wrapper,
-.editor-input .editor-card-wrapper {
-  display: block;
-  margin: 0.5em 0;
-}
-
-/* Toolbar scrollbar */
-.toolbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.05) transparent;
-}
-
-.toolbar::-webkit-scrollbar {
-  height: 6px;
-}
-
-.toolbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.toolbar::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.05);
-  border-radius: 3px;
-}
-
-@media (prefers-color-scheme: dark) {
-  .toolbar::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.05);
-  }
+  font-family: var(--font-sans);
 }

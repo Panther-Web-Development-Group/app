@@ -1,139 +1,194 @@
-import Link from "next/link"
-import { LexicalRenderer } from "@/app/components/LexicalRenderer"
-import { PageSectionsRenderer } from "@/app/components/PageSections"
-import { getPageBySlug, getPages, getPageSectionsByPageId } from "@/lib/supabase/server"
-import { cn } from "@/lib/cn"
+"use client"
+import dynamic from "next/dynamic"
+import { Hero } from "./globals/Hero"
+import { Section } from "./globals/Section"
+import { Content } from "./globals/Content"
+import { Card } from "@/app/components/Card"
+import { CardGroup } from "@/app/components/CardGroup"
+import { Ticker } from "@/app/components/Ticker"
+import { Statistics } from "@/app/components/Statistics"
 
-export const runtime = "nodejs"
+const InstagramWidget = dynamic(
+  () => import("@/app/components/InstagramWidget"),
+  { ssr: false }
+)
 
-export default async function Home() {
-  const homePage = await getPageBySlug("home")
-  const [homeSections, latestPagesRaw] = await Promise.all([
-    homePage?.render_mode === "sections" ? getPageSectionsByPageId(homePage.id) : Promise.resolve(null),
-    getPages({ publishedOnly: true, orderBy: "updated_at", order: "desc", limit: 12 }),
-  ])
+const DiscordWidget = dynamic(
+  () => import("@/app/components/DiscordWidget"),
+  { ssr: false }
+)
 
-  const latestPages = (latestPagesRaw || []).filter((p) => p.slug !== "home").slice(0, 6)
-  const heroUrl = homePage?.hero_image_enabled ? homePage.hero_image_url : null
-  const heroAlt = homePage?.hero_image_alt || homePage?.title || "Welcome"
-
+export default function Home() {
   return (
-    <div className="space-y-10">
-      <section className="snap-start scroll-mt-24 overflow-hidden rounded-2xl border border-(--pw-border) bg-secondary/20">
-        <div className="relative overflow-hidden">
-          {heroUrl ? (
-            <>
-              <img
-                src={heroUrl}
-                alt={heroAlt}
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-              <div className="absolute inset-0 bg-linear-to-b from-black/60 via-black/25 to-black/70" />
-            </>
-          ) : null}
+    <div className="min-w-0 overflow-x-hidden">
+      <Hero type="screen" autoPlay={5000}>
+        <Hero.Container>
+          <Hero.Slide>
+            <Hero.Slide.Image
+              src="/logos/PantherWeb-1.png"
+              alt="PantherWeb - Georgia State University"
+            />
+            <Hero.Slide.Content>
+              <h2 className="text-3xl font-bold md:text-4xl lg:text-5xl">
+                Welcome to PantherWeb
+              </h2>
+              <p className="mt-2 text-lg opacity-90">
+                Georgia State University&apos;s digital experience
+              </p>
+            </Hero.Slide.Content>
+          </Hero.Slide>
+          <Hero.Slide>
+            <Hero.Slide.Image
+              src="/logos/PantherWeb-2.png"
+              alt="PantherWeb branding"
+            />
+            <Hero.Slide.Content>
+              <h2 className="text-3xl font-bold md:text-4xl lg:text-5xl">
+                Discover. Learn. Achieve.
+              </h2>
+              <p className="mt-2 text-lg opacity-90">
+                Your journey starts here
+              </p>
+            </Hero.Slide.Content>
+          </Hero.Slide>
+          <Hero.Slide>
+            <Hero.Slide.Image
+              src="/logos/PantherWeb-3.png"
+              alt="PantherWeb"
+            />
+            <Hero.Slide.Content>
+              <h2 className="text-3xl font-bold md:text-4xl lg:text-5xl">
+                Excellence in Education
+              </h2>
+              <p className="mt-2 text-lg opacity-90">
+                Join our community of scholars
+              </p>
+            </Hero.Slide.Content>
+          </Hero.Slide>
+        </Hero.Container>
+        <Hero.Bar />
+      </Hero>
 
-          <div
-            className={cn(
-              "relative z-10 px-6 py-10 sm:px-10",
-              heroUrl ? "text-white" : "bg-linear-to-br from-secondary/60 to-background/20 text-foreground",
-            )}
-          >
-            <h1 className={cn("text-[2em] font-bold tracking-tight sm:text-[2.5em]", heroUrl ? "text-white" : "text-foreground")}>
-              {homePage?.title || "Welcome"}
-            </h1>
-            <p className={cn("mt-3 max-w-2xl text-[1.5em] leading-snug", heroUrl ? "text-white/90" : "text-foreground/80")}>
-              {homePage?.summary ||
-                "This site is powered by your CMS. Publish pages from the admin dashboard and they’ll appear here."}
+      <Ticker speed={30} className="border-y border-foreground/10">
+        <Ticker.Item><p>Welcome to PantherWeb</p></Ticker.Item>
+        <Ticker.Item><p>Web Development at GSU</p></Ticker.Item>
+        <Ticker.Item><p>Learn • Build • Connect</p></Ticker.Item>
+        <Ticker.Item><p>Join our community</p></Ticker.Item>
+      </Ticker>
+
+      <Content className="py-4">
+        <Section type="full" className="px-4 sm:px-6 lg:px-8">
+          <Section.Title>
+            Welcome to PantherWeb
+          </Section.Title>
+          <Section.Content type="full">
+            <p>
+              The Panther Web Development Group, also known as PantherWeb, is a student organization that encourages Georgia State University students to learn more about web development, regardless of major and background.
             </p>
+          </Section.Content>
+        </Section>
+      </Content>
+      <Content variant="withSidebar" className="py-4">
+        <div className="flex min-w-0 flex-col gap-8">
+          <Section type="full">
+            <Section.Title>Mission</Section.Title>
+            <Section.Content type="full">
+              <p>
+                PantherWeb aims to assist students, regardless of major, background, or skill set, in understanding and applying web development concepts through student-led projects, such as web and mobile applications. PantherWeb teaches a myriad of languages and frameworks including HTML, CSS, JavaScript, React, Angular, and Vue. We support all students in building their networks, creating new projects, and expanding their portfolios and resumes.
+              </p>
+            </Section.Content>
+          </Section>
 
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link
-                href="/admin"
-                className="inline-flex items-center justify-center rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition-colors hover:opacity-90"
-              >
-                Admin dashboard
-              </Link>
-              <Link
-                href="/login"
-                className={cn(
-                  "inline-flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-semibold transition-colors",
-                  heroUrl
-                    ? "border-white/30 bg-black/15 text-white hover:bg-black/25"
-                    : "border-(--pw-border) bg-background/10 text-foreground hover:bg-background/20",
-                )}
-              >
-                Login
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+          <Section type="full">
+            <Section.Title>By the Numbers</Section.Title>
+            <Section.Content type="full">
+              <Statistics>
+              <Statistics.Item value="50+" label="Active Members" />
+              <Statistics.Item value="5+" label="Years Strong" />
+              <Statistics.Item value="20+" label="Projects Built" />
+              <Statistics.Item value="100+" label="Workshops Held" />
+              </Statistics>
+            </Section.Content>
+          </Section>
 
-      {homePage?.render_mode === "sections" ? (
-        <section className="snap-start scroll-mt-24">
-          <PageSectionsRenderer sections={homeSections || []} />
-        </section>
-      ) : homePage?.content ? (
-        <section className="snap-start scroll-mt-24">
-          <LexicalRenderer
-            content={homePage.content}
-            className="prose prose-zinc dark:prose-invert max-w-none"
-          />
-        </section>
-      ) : null}
-
-      <section className="snap-start scroll-mt-24 space-y-4">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">
-              Latest pages
-            </h2>
-            <p className="mt-1 text-sm text-foreground/75">
-              Recently updated published pages.
-            </p>
-          </div>
-          <Link
-            href="/admin/pages"
-            className="text-sm font-semibold text-foreground/85 hover:text-foreground"
-          >
-            Manage pages
-          </Link>
-        </div>
-
-        {!latestPages || latestPages.length === 0 ? (
-          <div className="rounded-xl border border-(--pw-border) bg-secondary/20 p-6 text-sm text-foreground/75">
-            No published pages yet. Create one in{" "}
-            <Link href="/admin/pages" className="font-medium underline">
-              Admin → Pages
-            </Link>
-            .
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {latestPages.map((p) => (
-              <Link
-                key={p.id}
-                href={`/${p.slug}`}
-                className="group rounded-xl border border-(--pw-border) bg-secondary/20 p-5 transition-colors hover:bg-secondary/30"
-              >
-                <div className="text-sm font-semibold text-foreground">
-                  {p.title}
+          <Section type="full">
+            <Section.Title>Get Involved</Section.Title>
+            <Section.Content type="full">
+              <CardGroup variant="grid" className="w-full">
+              <Card variant="full" className="flex flex-col">
+                <Card.Image
+                  src="/logos/PantherWeb-1.png"
+                  alt="Learn"
+                  position="top"
+                  width={400}
+                  height={240}
+                />
+                <div className="flex flex-1 flex-col gap-3 p-6">
+                  <Card.Title>Learn</Card.Title>
+                  <Card.Content>
+                    <p>Develop your skills in web technologies with hands-on projects and workshops.</p>
+                  </Card.Content>
+                  <Card.CTA href="/about" className="mt-auto w-fit">
+                    Learn more
+                  </Card.CTA>
                 </div>
-                {p.summary ? (
-                  <div className="mt-2 line-clamp-3 text-sm text-foreground/75">
-                    {p.summary}
-                  </div>
-                ) : (
-                  <div className="mt-2 text-sm text-foreground/70">
-                    /{p.slug}
-                  </div>
-                )}
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
+              </Card>
+              <Card variant="full" className="flex flex-col">
+                <Card.Image
+                  src="/logos/PantherWeb-2.png"
+                  alt="Connect"
+                  position="top"
+                  width={400}
+                  height={240}
+                />
+                <div className="flex flex-1 flex-col gap-3 p-6">
+                  <Card.Title>Connect</Card.Title>
+                  <Card.Content>
+                    <p>Join a community of developers and grow your network at Georgia State.</p>
+                  </Card.Content>
+                  <Card.CTA href="/contact" className="mt-auto w-fit">
+                    Get in touch
+                  </Card.CTA>
+                </div>
+              </Card>
+              <Card variant="full" className="flex flex-col">
+                <Card.Image
+                  src="/logos/PantherWeb-3.png"
+                  alt="Build"
+                  position="top"
+                  width={400}
+                  height={240}
+                />
+                <div className="flex flex-1 flex-col gap-3 p-6">
+                  <Card.Title>Build</Card.Title>
+                  <Card.Content>
+                    <p>Work on real projects and build your portfolio alongside fellow students.</p>
+                  </Card.Content>
+                  <Card.CTA href="/about/team" className="mt-auto w-fit">
+                    Meet the team
+                  </Card.CTA>
+                </div>
+              </Card>
+              </CardGroup>
+            </Section.Content>
+          </Section>
+        </div>
+        <aside className="flex min-w-0 flex-col gap-12">
+          <DiscordWidget
+            serverId="1063654619428962334"
+            serverName="PantherWeb"
+            inviteUrl="https://discord.gg/PAcfCYJrgk"
+            className="w-full shrink-0"
+          />
+          <InstagramWidget
+            profileID="pantherweb.gsu"
+            className="w-full shrink-0"
+            posts={[
+              "https://www.instagram.com/p/DFzHOVNxk7w/",
+            ]}
+          />
+        </aside>
+      </Content>
     </div>
   )
 }
-

@@ -1,1 +1,0 @@
-export type Merge<T, R> = T & R
