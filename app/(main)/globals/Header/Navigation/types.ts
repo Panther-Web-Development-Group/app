@@ -28,7 +28,9 @@ export type NavigationItemProps = DetailedHTMLProps<
 export type NavigationLinkProps = DetailedHTMLProps<
   AnchorHTMLAttributes<HTMLAnchorElement>,
   HTMLAnchorElement
->
+> & {
+  href: string
+}
 
 export type NavigationTriggerProps = DetailedHTMLProps<
   HTMLAttributes<HTMLButtonElement>,
@@ -44,6 +46,8 @@ export type NavigationContentProps = DetailedHTMLProps<
 }
 
 export type NavigationSubnavProps = DetailedHTMLProps<
-  HTMLAttributes<HTMLElement>,
-  HTMLElement
->
+  HTMLAttributes<HTMLDivElement>,
+  HTMLDivElement
+> & {
+  isOpen?: boolean
+}

@@ -17,9 +17,9 @@ export const NavigationItem: FC<NavigationItemProps> = ({ className, children, h
         <NavigationLink
           aria-haspopup={subnav ? "menu" : undefined}
           href={href!}
-          onClick={(e) => {
+            onClick={(e) => {
             setNavIsOpen(false)
-            onClick?.(e as React.MouseEvent<HTMLLIElement>)
+            onClick?.(e as unknown as React.MouseEvent<HTMLLIElement>)
           }}
         >
           {children}

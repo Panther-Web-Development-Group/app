@@ -1,19 +1,20 @@
 import {
   DetailedHTMLProps,
   PropsWithChildren,
-  HTMLAttributes
+  HTMLAttributes,
+  RefObject,
 } from "react"
 
 export type HeaderProps = DetailedHTMLProps<
   HTMLAttributes<HTMLElement>, 
   HTMLElement
 > & {
-  ref: RefObject<HTMLElement>
+  ref?: RefObject<HTMLElement>
 }
 
 export type HeaderContainerProps = PropsWithChildren & DetailedHTMLProps<
-  HTMLAttributes<HTMLElement>,
-  HTMLElement
+  HTMLAttributes<HTMLDivElement>,
+  HTMLDivElement
 >
 
 export type HeaderSearchProps = PropsWithChildren & DetailedHTMLProps<

@@ -59,15 +59,15 @@ export type CardImageContentProps = PropsWithChildren &
   }
 
 export type CardListItemProps = PropsWithChildren &
-  DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement> & {
-    icon: React.ReactNode
+  DetailedHTMLProps<HTMLAttributes<HTMLLIElement>, HTMLLIElement> & {
+    icon?: React.ReactNode
     title: string
     description: string
     href?: string
   }
 
 export type CardListProps = PropsWithChildren &
-  DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>
+  DetailedHTMLProps<HTMLAttributes<HTMLUListElement>, HTMLUListElement>
 
 export type CardLinkProps = PropsWithChildren &
   DetailedHTMLProps<HTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement> & {
@@ -88,7 +88,9 @@ export type CardHeaderProps = PropsWithChildren &
   DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>
 
 export type CardTitleProps = PropsWithChildren &
-  DetailedHTMLProps<HTMLAttributes<HTMLHeadingElement>, HTMLHeadingElement>
+  DetailedHTMLProps<HTMLAttributes<HTMLHeadingElement>, HTMLHeadingElement> & {
+    as?: React.ElementType
+  }
 
 export type CardDescriptionProps = PropsWithChildren &
   DetailedHTMLProps<HTMLAttributes<HTMLParagraphElement>, HTMLParagraphElement>

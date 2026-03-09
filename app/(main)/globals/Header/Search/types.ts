@@ -8,8 +8,8 @@ import {
 } from "react"
 
 export type SearchProps = DetailedHTMLProps<
-  HTMLAttributes<HTMLElement>, 
-  HTMLElement
+  React.FormHTMLAttributes<HTMLFormElement>, 
+  HTMLFormElement
 > & {
   /** When true, applies styles for visibility over hero (transparent header) */
   overHero?: boolean
@@ -23,8 +23,8 @@ export type SearchInputProps = DetailedHTMLProps<
 }
 
 export type SearchAutocompleteProps = DetailedHTMLProps<
-  HTMLAttributes<HTMLElement>,
-  HTMLElement
+  HTMLAttributes<HTMLDivElement>,
+  HTMLDivElement
 > 
 
 export type SearchAutocompleteItemProps = DetailedHTMLProps<

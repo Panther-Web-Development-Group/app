@@ -12,8 +12,8 @@ import { HeaderContainer } from "./Container"
 import { useContainer } from "../Container/Context"
 import { cn } from "@/lib/cn"
 
-export const Header: FC<HeaderProps> = ({ className, ...props }) => {
-  const { navIsOpen, setNavIsOpen, hasHero, heroInView, showHeaderBackground } = useContainer()
+export const Header: FC<HeaderProps> = ({ className, ref: _ref, ...props }) => {
+  const { navIsOpen, setNavIsOpen, hasHero, heroInView, showHeaderBackground, headerRef } = useContainer()
 
   const handleCloseNav = useCallback(() => {
     setNavIsOpen(false)
@@ -32,7 +32,7 @@ export const Header: FC<HeaderProps> = ({ className, ...props }) => {
   }, [handleCloseNav])
 
   return (
-    <header {...props} className={cn(
+    <header ref={headerRef} {...props} className={cn(
       "px-5 py-3 md:px-8 md:py-4 top-0 z-51 w-full transition-colors shadow-[0_1px_3px_rgba(0,0,0,0.2)]",
       hasHero ? "fixed" : "sticky",
       heroInView

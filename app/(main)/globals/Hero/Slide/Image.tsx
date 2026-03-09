@@ -7,18 +7,21 @@ import { cn } from "@/lib/cn"
 
 export const HeroSlideImage: FC<HeroSlideImageProps> = ({
   alt,
+  src,
   className,
+  placeholder,
   ...props
 }) => {
   return (
     <div className="absolute inset-0">
       <Image
-        {...props}
+        src={src}
         alt={alt}
         fill
         sizes="100vw"
         className={cn("object-cover", className)}
         priority
+        placeholder={placeholder}
       />
       <div
         className="pointer-events-none absolute inset-0 z-[1] bg-black/25"

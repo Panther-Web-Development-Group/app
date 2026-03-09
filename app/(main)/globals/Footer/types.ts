@@ -8,6 +8,7 @@ export type FooterContainerProps = PropsWithChildren &
 
 export type FooterNavSectionProps = PropsWithChildren & {
   title: string
+  className?: string
 }
 
 export type FooterNavItemProps = React.AnchorHTMLAttributes<HTMLAnchorElement> & {

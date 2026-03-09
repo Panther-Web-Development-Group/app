@@ -70,10 +70,10 @@ export const ContainerProvider: FC<ContainerProviderProps> = ({ children }) => {
     [navIsOpen, isIntersecting, hasHero, heroInView, showHeaderBackground]
   )
 
-  const child = React.Children.only(children) as React.ReactElement
+  const child = React.Children.only(children) as React.ReactElement<{ ref?: React.Ref<HTMLDivElement> }>
   return (
     <ContainerContext.Provider value={contextValue}>
-      {React.cloneElement(child, { ref: containerRef })}
+      {React.cloneElement(child, { ref: containerRef } as React.ComponentPropsWithRef<'div'>)}
     </ContainerContext.Provider>
   )
 }

@@ -61,38 +61,39 @@ const AutocompleteContent: FC<AutocompleteContentProps> = ({
 
   const enhancedChildren = Children.map(children, (child) => {
     if (isValidElement(child) && child.type === SearchInput) {
-      return cloneElement(child as React.ReactElement<{ ref?: React.Ref<HTMLInputElement> }>, {
+      const childProps = (child as React.ReactElement<{ ref?: React.Ref<HTMLInputElement>; onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void; onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void; onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void; onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void }>).props
+      const enhancedProps = {
         ref: (el: HTMLInputElement | null) => {
           setInputRef(el)
-          const originalRef = (child as React.ReactElement<{ ref?: React.Ref<HTMLInputElement> }>).ref
+          const originalRef = childProps.ref
           if (typeof originalRef === "function") originalRef(el)
           else if (originalRef) (originalRef as React.MutableRefObject<HTMLInputElement | null>).current = el
         },
         onFocus: (e: React.FocusEvent<HTMLInputElement>) => {
           setIsOpen(true)
-          ;(child as React.ReactElement<{ onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void }>).props.onFocus?.(e)
+          childProps.onFocus?.(e)
         },
         onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
           const relatedTarget = e.relatedTarget as Node | null
           if (!containerRef.current?.contains(relatedTarget)) {
             setIsOpen(false)
           }
-          ;(child as React.ReactElement<{ onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void }>).props.onBlur?.(e)
+          childProps.onBlur?.(e)
         },
         onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
           setInputValue(e.target.value)
           setIsOpen(true)
           setHighlightedIndex(-1)
-          ;(child as React.ReactElement<{ onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void }>).props.onChange?.(e)
+          childProps.onChange?.(e)
         },
         onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
           const count = getItemCount()
           if (e.key === "ArrowDown") {
             e.preventDefault()
-            setHighlightedIndex((i) => (i < count - 1 ? i + 1 : 0))
+            setHighlightedIndex(highlightedIndex < count - 1 ? highlightedIndex + 1 : 0)
           } else if (e.key === "ArrowUp") {
             e.preventDefault()
-            setHighlightedIndex((i) => (i > 0 ? i - 1 : count - 1))
+            setHighlightedIndex(highlightedIndex > 0 ? highlightedIndex - 1 : count - 1)
           } else if (e.key === "Escape") {
             e.preventDefault()
             setIsOpen(false)
@@ -104,9 +105,10 @@ const AutocompleteContent: FC<AutocompleteContentProps> = ({
             const link = item?.querySelector("a")
             if (link) link.click()
           }
-          ;(child as React.ReactElement<{ onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void }>).props.onKeyDown?.(e)
+          childProps.onKeyDown?.(e)
         },
-      })
+      }
+      return cloneElement(child, enhancedProps as React.ComponentPropsWithRef<typeof SearchInput>)
     }
     return child
   })

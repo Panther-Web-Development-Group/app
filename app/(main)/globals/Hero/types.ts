@@ -24,10 +24,12 @@ export type HeroSlideProps = PropsWithChildren &
 
 export type HeroSlideImageProps = Omit<
   ImgHTMLAttributes<HTMLImageElement>,
-  "placeholder"
+  "placeholder" | "src"
 > & {
   /** Alt text is required for accessibility */
   alt: string
+  /** Image source - required for Next.js Image */
+  src: string
   /** Optional placeholder for loading state */
   placeholder?: "blur" | "empty"
 }
