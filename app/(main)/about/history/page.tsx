@@ -1,3 +1,5 @@
+"use client"
+
 import { Content } from "../../globals/Content"
 
 const milestones = [
