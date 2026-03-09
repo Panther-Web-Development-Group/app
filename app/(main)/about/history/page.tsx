@@ -44,7 +44,7 @@ const milestones = [
 export default function HistoryPage() {
   return (
     <div className="min-w-0 overflow-x-hidden">
-      <Content className="px-4 sm:px-6 lg:px-8">
+      <Content className="px-4 py-4 sm:px-6 lg:px-8">
         <div className="mb-10 flex flex-col gap-2">
           <Content.Title as="h1">Our History</Content.Title>
           <Content.Subtitle>
