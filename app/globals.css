@@ -32,6 +32,9 @@
 
 html {
   scroll-behavior: smooth;
+  /* Homepage sections (.hero, .hs) snap to viewport; padding clears fixed header */
+  scroll-snap-type: y proximity;
+  scroll-padding-top: var(--header-height);
 }
 
 body {
@@ -469,6 +472,8 @@ body {
   gap: 2rem;
   padding: 4rem 1rem 2rem;
   text-align: center;
+  scroll-snap-align: start;
+  scroll-snap-stop: normal;
 }
 
 .hero-heading {
@@ -511,6 +516,7 @@ body {
   min-height: 100dvh;
   box-sizing: border-box;
   scroll-snap-align: start;
+  scroll-snap-stop: normal;
   display: flex;
   flex-direction: column;
 }
@@ -1631,6 +1637,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+    scroll-snap-type: none;
   }
   .bg-tag {
     animation: none;
