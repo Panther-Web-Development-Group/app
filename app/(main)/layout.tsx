@@ -1,16 +1,18 @@
-import type { Metadata } from "next"
-import { Header } from "./globals/Header"
-import { Footer } from "./globals/Footer"
-import { Container } from "./globals/Container"
+import type { FC, PropsWithChildren } from "react"
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+import { Footer } from "@/app/globals/Footer"
+import { Header } from "@/app/globals/Header"
+import { HomepageBackdrop } from "@/app/globals/Homepage/Backdrop"
+
+const SiteLayout: FC<PropsWithChildren> = ({ children }) => {
   return (
-    <Container>
+    <>
+      <HomepageBackdrop />
       <Header />
-      <main className="flex-1">
-        {children}
-      </main>
+      <div className="page">{children}</div>
       <Footer />
-    </Container>
+    </>
   )
 }
+
+export default SiteLayout
